@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"fmt"
+	"io"
 	"log"
 	"net/http"
 	"os"
@@ -111,28 +112,48 @@ func main() {
 		})
 	})
 
-	// Debug: retorna dados do usuário Typebot (inclui workspaceId)
-	app.Get("/debug/typebot-me", func(c *fiber.Ctx) error {
-		body, err := typebotCollector.GetMe(c.Context())
-		if err != nil {
-			return c.Status(500).JSON(fiber.Map{"error": err.Error()})
+	// Debug: testa várias URLs da API Typebot para descobrir a correta
+	app.Get("/debug/typebot-discover", func(c *fiber.Ctx) error {
+		token := cfg.TypebotAPIToken
+		slug := cfg.TypebotBotSlug
+		bases := []string{
+			cfg.TypebotAPIURL,
+			"https://bot.uctechnology.com.br",
+			"https://typebot.uctechnology.com.br",
 		}
-		c.Set("Content-Type", "application/json")
-		return c.SendString(body)
-	})
-
-	// Debug: lista typebots do workspace (?workspaceId=xxx)
-	app.Get("/debug/typebots", func(c *fiber.Ctx) error {
-		wid := c.Query("workspaceId")
-		if wid == "" {
-			return c.Status(400).JSON(fiber.Map{"error": "passe ?workspaceId=xxx — use /debug/typebot-me para descobrir"})
+		httpClient := &http.Client{Timeout: 8 * time.Second}
+		type attempt struct {
+			URL    string `json:"url"`
+			Status int    `json:"status"`
+			Body   string `json:"body"`
 		}
-		body, err := typebotCollector.ListTypebots(c.Context(), wid)
-		if err != nil {
-			return c.Status(500).JSON(fiber.Map{"error": err.Error()})
+		var attempts []attempt
+		for _, base := range bases {
+			urls := []string{
+				fmt.Sprintf("%s/api/v1/typebots/%s/results?limit=1&timeFilter=allTime", base, slug),
+				fmt.Sprintf("%s/api/v1/typebots/%s/results?limit=1", base, slug),
+			}
+			for _, u := range urls {
+				req, _ := http.NewRequestWithContext(c.Context(), "GET", u, nil)
+				req.Header.Set("Authorization", "Bearer "+token)
+				resp, err := httpClient.Do(req)
+				if err != nil {
+					attempts = append(attempts, attempt{URL: u, Status: 0, Body: err.Error()})
+					continue
+				}
+				body, _ := io.ReadAll(resp.Body)
+				resp.Body.Close()
+				bodyStr := string(body)
+				if len(bodyStr) > 300 {
+					bodyStr = bodyStr[:300] + "..."
+				}
+				attempts = append(attempts, attempt{URL: u, Status: resp.StatusCode, Body: bodyStr})
+				if resp.StatusCode == 200 {
+					return c.JSON(fiber.Map{"found": true, "working_url": u, "attempts": attempts})
+				}
+			}
 		}
-		c.Set("Content-Type", "application/json")
-		return c.SendString(body)
+		return c.JSON(fiber.Map{"found": false, "attempts": attempts})
 	})
 
 	// Rota de reset forçado do master (debug — remover após login funcionar)
