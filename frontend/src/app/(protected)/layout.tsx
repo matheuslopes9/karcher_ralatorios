@@ -9,8 +9,6 @@ import {
   FileText,
   FileOutput,
   Users,
-  User,
-  Shield,
   LogOut,
   Menu,
   X,
@@ -31,8 +29,6 @@ const menuItems = [
 
 const settingsItems = [
   { icon: Users, label: 'Usuários', href: '/settings/users', roles: ['SUPER_ADMIN', 'ADMIN'] },
-  { icon: User, label: 'Perfil', href: '/settings/profile' },
-  { icon: Shield, label: 'Segurança', href: '/settings/security' },
 ];
 
 export default function ProtectedLayout({ children }: ProtectedLayoutProps) {
@@ -194,8 +190,10 @@ export default function ProtectedLayout({ children }: ProtectedLayoutProps) {
       <div className="flex-1 flex flex-col min-w-0 lg:ml-60">
         {/* Topbar */}
         <header
-          className="sticky top-0 z-20 flex items-center gap-4 px-6 py-4"
+          className="sticky top-0 z-20 flex items-center gap-4 px-6"
           style={{
+            paddingTop: '2.25rem',
+            paddingBottom: '1rem',
             background: 'rgba(10,10,15,0.85)',
             backdropFilter: 'blur(12px)',
             borderBottom: '1px solid var(--border)',

@@ -144,15 +144,12 @@ export default function ResultsPage() {
   const [searchInput, setSearchInput] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
 
-  const limit = 20;
+  const limit = 15;
 
   const loadResults = useCallback(async () => {
     setLoading(true);
     try {
-      const params = new URLSearchParams({
-        page: String(page),
-        limit: String(limit),
-      });
+      const params = new URLSearchParams({ page: String(page), limit: String(limit) });
       if (search) params.set('search', search);
       if (statusFilter) params.set('completed', statusFilter);
 

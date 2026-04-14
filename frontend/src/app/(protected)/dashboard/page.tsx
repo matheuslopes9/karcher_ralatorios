@@ -29,7 +29,7 @@ export default function DashboardPage() {
   });
   const [analytics, setAnalytics] = useState<Analytics | null>(null);
   const [loading, setLoading] = useState(true);
-  const [period, setPeriod] = useState('monthly');
+  const [period, setPeriod] = useState('daily');
   const [lastUpdate, setLastUpdate] = useState<Date | null>(null);
 
   useEffect(() => { load(); }, [period]);

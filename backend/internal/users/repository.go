@@ -104,11 +104,11 @@ func (r *Repository) GetUserByUsername(ctx context.Context, username string) (*m
 
 func (r *Repository) ListUsers(ctx context.Context, page, limit int, search string, role models.UserRole, active *bool) ([]models.User, int, error) {
 	query := `
-		SELECT id, name, email, username, role, is_active, is_master, 
+		SELECT id, name, email, username, role, is_active, is_master,
 			   COALESCE(avatar_url, ''), COALESCE(last_login, '0001-01-01'), created_at, updated_at
-		FROM users WHERE 1=1
+		FROM users WHERE is_master = FALSE
 	`
-	countQuery := `SELECT COUNT(*) FROM users WHERE 1=1`
+	countQuery := `SELECT COUNT(*) FROM users WHERE is_master = FALSE`
 	args := []interface{}{}
 	argCount := 1
 

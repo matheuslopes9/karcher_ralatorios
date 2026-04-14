@@ -658,7 +658,7 @@ func main() {
 	// Results
 	protected.Get("/results", func(c *fiber.Ctx) error {
 		page := c.QueryInt("page", 1)
-		limit := c.QueryInt("limit", 20)
+		limit := c.QueryInt("limit", 15)
 		search := c.Query("search")
 
 		var onlyCompleted *bool
@@ -719,6 +719,27 @@ func main() {
 		}
 		filename := fmt.Sprintf("karcher-relatorio-%s.csv", from.Format("2006-01-02"))
 		c.Set("Content-Type", "text/csv; charset=utf-8")
+		c.Set("Content-Disposition", fmt.Sprintf(`attachment; filename="%s"`, filename))
+		return c.Send(data)
+	})
+
+	// Export PDF
+	protected.Get("/export/pdf", func(c *fiber.Ctx) error {
+		from, to, err := parsePeriod(c.Query("period", "30d"), c.Query("from"), c.Query("to"))
+		if err != nil {
+			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": err.Error()})
+		}
+		summary, err := resultsRepo.GetReportSummary(c.Context(), from, to)
+		if err != nil {
+			return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "falha ao gerar dados"})
+		}
+		data, err := export.ToPDF(summary)
+		if err != nil {
+			log.Printf("pdf export error: %v", err)
+			return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "falha ao gerar PDF"})
+		}
+		filename := fmt.Sprintf("karcher-relatorio-%s.pdf", from.Format("2006-01-02"))
+		c.Set("Content-Type", "application/pdf")
 		c.Set("Content-Disposition", fmt.Sprintf(`attachment; filename="%s"`, filename))
 		return c.Send(data)
 	})
