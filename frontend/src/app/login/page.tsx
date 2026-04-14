@@ -26,7 +26,7 @@ export default function LoginPage() {
       const response = await api.post('/api/auth/login', { username, password });
       const { access_token, refresh_token, user } = response.data;
       login(user, access_token, refresh_token);
-      router.push('/dashboard');
+      window.location.href = '/dashboard';
     } catch (error: any) {
       const status = error.response?.status;
       const serverMsg = error.response?.data?.error;
