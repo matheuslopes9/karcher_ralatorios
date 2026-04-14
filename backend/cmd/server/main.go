@@ -111,9 +111,23 @@ func main() {
 		})
 	})
 
-	// Debug: lista typebots disponíveis para descobrir o ID correto
+	// Debug: retorna dados do usuário Typebot (inclui workspaceId)
+	app.Get("/debug/typebot-me", func(c *fiber.Ctx) error {
+		body, err := typebotCollector.GetMe(c.Context())
+		if err != nil {
+			return c.Status(500).JSON(fiber.Map{"error": err.Error()})
+		}
+		c.Set("Content-Type", "application/json")
+		return c.SendString(body)
+	})
+
+	// Debug: lista typebots do workspace (?workspaceId=xxx)
 	app.Get("/debug/typebots", func(c *fiber.Ctx) error {
-		body, err := typebotCollector.ListTypebots(c.Context())
+		wid := c.Query("workspaceId")
+		if wid == "" {
+			return c.Status(400).JSON(fiber.Map{"error": "passe ?workspaceId=xxx — use /debug/typebot-me para descobrir"})
+		}
+		body, err := typebotCollector.ListTypebots(c.Context(), wid)
 		if err != nil {
 			return c.Status(500).JSON(fiber.Map{"error": err.Error()})
 		}

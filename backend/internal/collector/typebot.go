@@ -185,12 +185,25 @@ func (c *Client) saveResult(ctx context.Context, r ResultItem) (bool, error) {
 	return true, nil
 }
 
-// ListTypebots lista todos os typebots disponíveis para descobrir o ID correto
-func (c *Client) ListTypebots(ctx context.Context) (string, error) {
-	url := fmt.Sprintf("%s/api/v1/typebots", c.apiURL)
+// GetMe retorna informações do usuário autenticado (inclui workspaces)
+func (c *Client) GetMe(ctx context.Context) (string, error) {
+	url := fmt.Sprintf("%s/api/v1/me", c.apiURL)
 	req, _ := http.NewRequestWithContext(ctx, "GET", url, nil)
 	req.Header.Set("Authorization", "Bearer "+c.apiToken)
+	resp, err := c.http.Do(req)
+	if err != nil {
+		return "", err
+	}
+	defer resp.Body.Close()
+	body, _ := io.ReadAll(resp.Body)
+	return string(body), nil
+}
 
+// ListTypebots lista typebots do workspace
+func (c *Client) ListTypebots(ctx context.Context, workspaceID string) (string, error) {
+	url := fmt.Sprintf("%s/api/v1/typebots?workspaceId=%s", c.apiURL, workspaceID)
+	req, _ := http.NewRequestWithContext(ctx, "GET", url, nil)
+	req.Header.Set("Authorization", "Bearer "+c.apiToken)
 	resp, err := c.http.Do(req)
 	if err != nil {
 		return "", err
