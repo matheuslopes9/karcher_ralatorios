@@ -67,6 +67,20 @@ func main() {
 		AllowMethods: "GET, POST, PUT, PATCH, DELETE, OPTIONS",
 	}))
 
+	// Rota de diagnóstico temporária (remover após confirmar login)
+	app.Get("/debug/auth", func(c *fiber.Ctx) error {
+		testHash, _ := auth.HashPassword(cfg.MasterPassword, 12)
+		valid := auth.CheckPasswordHash(cfg.MasterPassword, testHash)
+		return c.JSON(fiber.Map{
+			"master_username":    cfg.MasterUsername,
+			"password_len":       len(cfg.MasterPassword),
+			"password_last2":     cfg.MasterPassword[max(0, len(cfg.MasterPassword)-2):],
+			"hash_self_check":    valid,
+			"env_raw":            os.Getenv("MASTER_PASSWORD"),
+			"env_len":            len(os.Getenv("MASTER_PASSWORD")),
+		})
+	})
+
 	// Rota de health check (pública)
 	app.Get("/health", func(c *fiber.Ctx) error {
 		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
