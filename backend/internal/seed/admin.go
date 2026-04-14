@@ -19,17 +19,26 @@ func SeedMasterUser(db *sql.DB, username, password, email, name string) error {
 		return err
 	}
 
-	if count > 0 {
-		log.Println("Master user already exists. Skipping seed.")
-		return nil
-	}
-
-	log.Println("Creating master user (SUPER_ADMIN)...")
-
 	passwordHash, err := auth.HashPassword(password, 12)
 	if err != nil {
 		return err
 	}
+
+	if count > 0 {
+		log.Println("Master user already exists. Updating password and ensuring active...")
+		_, err = db.Exec(`
+			UPDATE users
+			SET password_hash = $1, is_active = TRUE, role = $2
+			WHERE username = $3
+		`, passwordHash, string(models.RoleSuperAdmin), username)
+		if err != nil {
+			return err
+		}
+		log.Println("Master user updated successfully!")
+		return nil
+	}
+
+	log.Println("Creating master user (SUPER_ADMIN)...")
 
 	query := `
 		INSERT INTO users (id, name, email, username, password_hash, role, is_active, is_master)
