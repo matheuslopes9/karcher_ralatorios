@@ -60,34 +60,50 @@ func (r *Repository) GetOverview(ctx context.Context) (*OverviewStats, error) {
 
 // --- Results list ---
 
-type ResultRow struct {
-	ID           string     `json:"id"`
-	ResultID     string     `json:"result_id"`
-	CreatedAtBot *time.Time `json:"created_at"`
-	IsCompleted  bool       `json:"is_completed"`
-	DurationSecs int        `json:"duration_secs"`
+type AnswerField struct {
+	Key   string `json:"key"`
+	Value string `json:"value"`
 }
 
-func (r *Repository) ListResults(ctx context.Context, page, limit int, onlyCompleted *bool) ([]ResultRow, int, error) {
+type ResultRow struct {
+	ID           string        `json:"id"`
+	ResultID     string        `json:"result_id"`
+	CreatedAtBot *time.Time    `json:"created_at"`
+	IsCompleted  bool          `json:"is_completed"`
+	DurationSecs int           `json:"duration_secs"`
+	Fields       []AnswerField `json:"fields"`
+}
+
+func (r *Repository) ListResults(ctx context.Context, page, limit int, onlyCompleted *bool, search string) ([]ResultRow, int, error) {
 	where := "1=1"
 	args := []interface{}{}
 	n := 1
 
 	if onlyCompleted != nil {
-		where += fmt.Sprintf(" AND is_completed = $%d", n)
+		where += fmt.Sprintf(" AND r.is_completed = $%d", n)
 		args = append(args, *onlyCompleted)
 		n++
 	}
 
+	if search != "" {
+		where += fmt.Sprintf(` AND EXISTS (
+			SELECT 1 FROM answers a2
+			WHERE a2.result_id = r.id
+			AND (LOWER(a2.field_value) LIKE LOWER($%d) OR LOWER(a2.field_key) LIKE LOWER($%d))
+		)`, n, n)
+		args = append(args, "%"+search+"%")
+		n++
+	}
+
 	var total int
-	r.db.QueryRowContext(ctx, `SELECT COUNT(*) FROM results WHERE `+where, args...).Scan(&total)
+	r.db.QueryRowContext(ctx, `SELECT COUNT(*) FROM results r WHERE `+where, args...).Scan(&total)
 
 	args = append(args, limit, (page-1)*limit)
 	rows, err := r.db.QueryContext(ctx, fmt.Sprintf(`
-		SELECT id, result_id, created_at_bot, is_completed, COALESCE(duration_secs, 0)
-		FROM results
+		SELECT r.id, r.result_id, r.created_at_bot, r.is_completed, COALESCE(r.duration_secs, 0)
+		FROM results r
 		WHERE %s
-		ORDER BY created_at_bot DESC
+		ORDER BY r.created_at_bot DESC
 		LIMIT $%d OFFSET $%d
 	`, where, n, n+1), args...)
 	if err != nil {
@@ -96,12 +112,52 @@ func (r *Repository) ListResults(ctx context.Context, page, limit int, onlyCompl
 	defer rows.Close()
 
 	var list []ResultRow
+	var ids []string
 	for rows.Next() {
 		var row ResultRow
 		if err := rows.Scan(&row.ID, &row.ResultID, &row.CreatedAtBot, &row.IsCompleted, &row.DurationSecs); err != nil {
 			continue
 		}
 		list = append(list, row)
+		ids = append(ids, row.ID)
+	}
+
+	// Busca os campos (answers) para cada resultado
+	if len(ids) > 0 {
+		placeholders := ""
+		answerArgs := make([]interface{}, len(ids))
+		for i, id := range ids {
+			if i > 0 {
+				placeholders += ","
+			}
+			placeholders += fmt.Sprintf("$%d", i+1)
+			answerArgs[i] = id
+		}
+
+		arows, err := r.db.QueryContext(ctx, fmt.Sprintf(`
+			SELECT result_id, field_key, field_value
+			FROM answers
+			WHERE result_id IN (%s)
+			ORDER BY result_id, id
+		`, placeholders), answerArgs...)
+
+		if err == nil {
+			defer arows.Close()
+			fieldMap := map[string][]AnswerField{}
+			for arows.Next() {
+				var rid, key, val string
+				if arows.Scan(&rid, &key, &val) == nil {
+					fieldMap[rid] = append(fieldMap[rid], AnswerField{Key: key, Value: val})
+				}
+			}
+			for i := range list {
+				if fields, ok := fieldMap[list[i].ID]; ok {
+					list[i].Fields = fields
+				} else {
+					list[i].Fields = []AnswerField{}
+				}
+			}
+		}
 	}
 
 	return list, total, nil

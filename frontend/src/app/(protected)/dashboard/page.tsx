@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { api } from '@/lib/api';
-import { TrendingUp, TrendingDown, Clock, CheckCircle, Activity, Zap, RefreshCw } from 'lucide-react';
+import { TrendingUp, TrendingDown, CheckCircle, Activity, Zap, RefreshCw } from 'lucide-react';
 
 interface Overview {
   total_results: number;
@@ -51,13 +51,6 @@ export default function DashboardPage() {
     }
   };
 
-  const formatDuration = (s: number) => {
-    if (!s) return '—';
-    const m = Math.floor(s / 60);
-    const sec = s % 60;
-    return m > 0 ? `${m}m ${sec}s` : `${sec}s`;
-  };
-
   const maxDay = Math.max(...(analytics?.per_day?.map(d => d.count) || [1]), 1);
   const maxField = Math.max(...(analytics?.top_answers?.map(f => f.count) || [1]), 1);
 
@@ -92,7 +85,7 @@ export default function DashboardPage() {
       </div>
 
       {/* Métricas principais */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         {/* Total */}
         <div className="metric-card">
           <div className="flex items-start justify-between">
@@ -132,18 +125,6 @@ export default function DashboardPage() {
           <div className="progress-bar mt-1">
             <div className="progress-bar-fill" style={{ width: `${overview.completion_rate}%` }} />
           </div>
-        </div>
-
-        {/* Tempo médio */}
-        <div className="metric-card">
-          <div className="flex items-start justify-between">
-            <p className="metric-label">Tempo Médio</p>
-            <div className="metric-icon" style={{ background: 'rgba(245,158,11,0.1)' }}>
-              <Clock className="w-5 h-5" style={{ color: 'var(--warning)' }} />
-            </div>
-          </div>
-          <p className="metric-value">{loading ? '—' : formatDuration(overview.avg_duration)}</p>
-          <span className="text-xs" style={{ color: 'var(--text-muted)' }}>por interação</span>
         </div>
       </div>
 

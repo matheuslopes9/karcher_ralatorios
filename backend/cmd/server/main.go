@@ -657,7 +657,8 @@ func main() {
 	// Results
 	protected.Get("/results", func(c *fiber.Ctx) error {
 		page := c.QueryInt("page", 1)
-		limit := c.QueryInt("limit", 50)
+		limit := c.QueryInt("limit", 20)
+		search := c.Query("search")
 
 		var onlyCompleted *bool
 		if s := c.Query("completed"); s != "" {
@@ -665,7 +666,7 @@ func main() {
 			onlyCompleted = &v
 		}
 
-		data, total, err := resultsRepo.ListResults(c.Context(), page, limit, onlyCompleted)
+		data, total, err := resultsRepo.ListResults(c.Context(), page, limit, onlyCompleted, search)
 		if err != nil {
 			log.Printf("results error: %v", err)
 			return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "falha ao listar resultados"})
