@@ -69,15 +69,36 @@ func main() {
 
 	// Rota de diagnóstico temporária (remover após confirmar login)
 	app.Get("/debug/auth", func(c *fiber.Ctx) error {
-		testHash, _ := auth.HashPassword(cfg.MasterPassword, 12)
-		valid := auth.CheckPasswordHash(cfg.MasterPassword, testHash)
+		// Lê hash atual do banco
+		var dbHash string
+		var isActive bool
+		var role string
+		err := pgDB.DB.QueryRowContext(c.Context(),
+			`SELECT password_hash, is_active, role FROM users WHERE username = $1`,
+			cfg.MasterUsername,
+		).Scan(&dbHash, &isActive, &role)
+
+		var dbFound bool
+		var hashMatch bool
+		var dbHashPreview string
+		if err == nil {
+			dbFound = true
+			hashMatch = auth.CheckPasswordHash(cfg.MasterPassword, dbHash)
+			if len(dbHash) > 10 {
+				dbHashPreview = dbHash[:10] + "..."
+			}
+		}
+
 		return c.JSON(fiber.Map{
-			"master_username":    cfg.MasterUsername,
-			"password_len":       len(cfg.MasterPassword),
-			"password_last2":     cfg.MasterPassword[max(0, len(cfg.MasterPassword)-2):],
-			"hash_self_check":    valid,
-			"env_raw":            os.Getenv("MASTER_PASSWORD"),
-			"env_len":            len(os.Getenv("MASTER_PASSWORD")),
+			"master_username":  cfg.MasterUsername,
+			"password_len":     len(cfg.MasterPassword),
+			"password_last2":   cfg.MasterPassword[max(0, len(cfg.MasterPassword)-2):],
+			"db_user_found":    dbFound,
+			"db_user_active":   isActive,
+			"db_user_role":     role,
+			"db_hash_preview":  dbHashPreview,
+			"db_hash_match":    hashMatch,
+			"db_error":         fmt.Sprintf("%v", err),
 		})
 	})
 
