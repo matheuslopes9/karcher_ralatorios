@@ -185,6 +185,21 @@ func (c *Client) saveResult(ctx context.Context, r ResultItem) (bool, error) {
 	return true, nil
 }
 
+// ListTypebots lista todos os typebots disponíveis para descobrir o ID correto
+func (c *Client) ListTypebots(ctx context.Context) (string, error) {
+	url := fmt.Sprintf("%s/api/v1/typebots", c.apiURL)
+	req, _ := http.NewRequestWithContext(ctx, "GET", url, nil)
+	req.Header.Set("Authorization", "Bearer "+c.apiToken)
+
+	resp, err := c.http.Do(req)
+	if err != nil {
+		return "", err
+	}
+	defer resp.Body.Close()
+	body, _ := io.ReadAll(resp.Body)
+	return string(body), nil
+}
+
 // StartScheduler inicia coleta periódica
 func (c *Client) StartScheduler(ctx context.Context, interval time.Duration) {
 	log.Printf("[collector] Scheduler started, interval: %s", interval)

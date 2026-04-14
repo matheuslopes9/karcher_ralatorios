@@ -111,6 +111,16 @@ func main() {
 		})
 	})
 
+	// Debug: lista typebots disponíveis para descobrir o ID correto
+	app.Get("/debug/typebots", func(c *fiber.Ctx) error {
+		body, err := typebotCollector.ListTypebots(c.Context())
+		if err != nil {
+			return c.Status(500).JSON(fiber.Map{"error": err.Error()})
+		}
+		c.Set("Content-Type", "application/json")
+		return c.SendString(body)
+	})
+
 	// Rota de reset forçado do master (debug — remover após login funcionar)
 	app.Get("/debug/reset-master", func(c *fiber.Ctx) error {
 		newHash, err := auth.HashPassword(cfg.MasterPassword, 12)

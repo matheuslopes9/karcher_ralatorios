@@ -32,10 +32,10 @@ func (r *Repository) GetOverview(ctx context.Context) (*OverviewStats, error) {
 		SELECT
 			COUNT(*) AS total,
 			COUNT(*) FILTER (WHERE is_completed = TRUE) AS completed,
-			ROUND(
+			COALESCE(ROUND(
 				COUNT(*) FILTER (WHERE is_completed = TRUE)::numeric /
 				NULLIF(COUNT(*), 0) * 100, 1
-			) AS rate,
+			), 0) AS rate,
 			COALESCE(AVG(duration_secs) FILTER (WHERE duration_secs > 0), 0)::int AS avg_dur
 		FROM results
 	`).Scan(&stats.TotalResults, &stats.CompletedCount, &stats.CompletionRate, &stats.AvgDuration)
