@@ -12,8 +12,10 @@ import (
 	"time"
 
 	"karcher-analytics/internal/auth"
+	"karcher-analytics/internal/collector"
 	"karcher-analytics/internal/config"
 	"karcher-analytics/internal/models"
+	"karcher-analytics/internal/results"
 	"karcher-analytics/internal/seed"
 	"karcher-analytics/internal/storage"
 	"karcher-analytics/internal/users"
@@ -52,6 +54,13 @@ func main() {
 	tokenService := auth.NewTokenService(cfg.JWTSecret, cfg.JWTAccessExpiry, cfg.JWTRefreshExpiry)
 	refreshStore := &auth.RefreshTokenStore{DB: pgDB.DB}
 	userRepo := users.NewRepository(pgDB.DB)
+	resultsRepo := results.NewRepository(pgDB.DB)
+	typebotCollector := collector.NewClient(pgDB.DB, cfg.TypebotAPIURL, cfg.TypebotAPIToken, cfg.TypebotBotSlug)
+
+	// Inicia coleta periódica do Typebot em background
+	collectorCtx, collectorCancel := context.WithCancel(context.Background())
+	defer collectorCancel()
+	go typebotCollector.StartScheduler(collectorCtx, cfg.TypebotCollectInterval)
 
 	// Cria Fiber app
 	app := fiber.New(fiber.Config{
@@ -575,32 +584,45 @@ func main() {
 
 	// Dashboard
 	protected.Get("/dashboard/overview", func(c *fiber.Ctx) error {
-		return c.JSON(fiber.Map{
-			"total_results":    0,
-			"completed_count":  0,
-			"completion_rate":  0,
-			"avg_duration":     0,
-			"vs_yesterday":     0,
-		})
+		stats, err := resultsRepo.GetOverview(c.Context())
+		if err != nil {
+			log.Printf("dashboard/overview error: %v", err)
+			return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "falha ao carregar overview"})
+		}
+		return c.JSON(stats)
 	})
 
 	// Results
 	protected.Get("/results", func(c *fiber.Ctx) error {
-		return c.JSON(fiber.Map{
-			"data":  []interface{}{},
-			"total": 0,
-			"page":  c.QueryInt("page", 1),
-			"limit": c.QueryInt("limit", 50),
-		})
+		page := c.QueryInt("page", 1)
+		limit := c.QueryInt("limit", 50)
+
+		var onlyCompleted *bool
+		if s := c.Query("completed"); s != "" {
+			v := s == "true"
+			onlyCompleted = &v
+		}
+
+		data, total, err := resultsRepo.ListResults(c.Context(), page, limit, onlyCompleted)
+		if err != nil {
+			log.Printf("results error: %v", err)
+			return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "falha ao listar resultados"})
+		}
+		if data == nil {
+			data = []results.ResultRow{}
+		}
+		return c.JSON(fiber.Map{"data": data, "total": total, "page": page, "limit": limit})
 	})
 
 	// Analytics
 	protected.Get("/analytics/summary", func(c *fiber.Ctx) error {
-		return c.JSON(fiber.Map{
-			"period":          "all_time",
-			"total_results":   0,
-			"completion_rate": 0,
-		})
+		period := c.Query("period", "daily")
+		summary, err := resultsRepo.GetAnalyticsSummary(c.Context(), period)
+		if err != nil {
+			log.Printf("analytics/summary error: %v", err)
+			return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "falha ao carregar analytics"})
+		}
+		return c.JSON(summary)
 	})
 
 	// Reports
