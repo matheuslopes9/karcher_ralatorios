@@ -20,11 +20,11 @@ type User struct {
 	Role         UserRole  `json:"role" db:"role"`
 	IsActive     bool      `json:"is_active" db:"is_active"`
 	IsMaster     bool      `json:"is_master" db:"is_master"`
-	AvatarURL    string    `json:"avatar_url,omitempty" db:"avatar_url"`
-	LastLogin    time.Time `json:"last_login,omitempty" db:"last_login"`
-	CreatedAt    time.Time `json:"created_at" db:"created_at"`
-	UpdatedAt    time.Time `json:"updated_at" db:"updated_at"`
-	CreatedBy    string    `json:"created_by,omitempty" db:"created_by"`
+	AvatarURL    string       `json:"avatar_url,omitempty" db:"avatar_url"`
+	LastLogin    *time.Time   `json:"last_login,omitempty" db:"last_login"`
+	CreatedAt    time.Time    `json:"created_at" db:"created_at"`
+	UpdatedAt    time.Time    `json:"updated_at" db:"updated_at"`
+	CreatedBy    string       `json:"created_by,omitempty" db:"created_by"`
 }
 
 type CreateUserInput struct {

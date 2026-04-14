@@ -38,6 +38,17 @@ func NewPostgresDB(databaseURL string, maxConns, idleConns int) (*PostgresDB, er
 func (db *PostgresDB) RunMigrations(migrationsDir string) error {
 	log.Println("Running database migrations...")
 
+	// Cria tabela de controle de migrations se não existir
+	_, err := db.Exec(`
+		CREATE TABLE IF NOT EXISTS schema_migrations (
+			filename   VARCHAR(255) PRIMARY KEY,
+			applied_at TIMESTAMPTZ DEFAULT NOW()
+		)
+	`)
+	if err != nil {
+		return fmt.Errorf("failed to create schema_migrations table: %w", err)
+	}
+
 	files, err := filepath.Glob(filepath.Join(migrationsDir, "*.sql"))
 	if err != nil {
 		return fmt.Errorf("failed to read migrations directory: %w", err)
@@ -47,6 +58,15 @@ func (db *PostgresDB) RunMigrations(migrationsDir string) error {
 
 	for _, file := range files {
 		filename := filepath.Base(file)
+
+		// Verifica se já foi aplicada
+		var count int
+		db.QueryRow(`SELECT COUNT(*) FROM schema_migrations WHERE filename = $1`, filename).Scan(&count)
+		if count > 0 {
+			log.Printf("Migration already applied, skipping: %s", filename)
+			continue
+		}
+
 		log.Printf("Applying migration: %s", filename)
 
 		content, err := os.ReadFile(file)
@@ -60,11 +80,17 @@ func (db *PostgresDB) RunMigrations(migrationsDir string) error {
 			if query == "" {
 				continue
 			}
-
 			if _, err := db.Exec(query); err != nil {
 				return fmt.Errorf("failed to execute migration %s: %w", filename, err)
 			}
 		}
+
+		// Registra como aplicada
+		if _, err := db.Exec(`INSERT INTO schema_migrations (filename) VALUES ($1)`, filename); err != nil {
+			return fmt.Errorf("failed to record migration %s: %w", filename, err)
+		}
+
+		log.Printf("Migration applied: %s", filename)
 	}
 
 	log.Println("All migrations applied successfully")

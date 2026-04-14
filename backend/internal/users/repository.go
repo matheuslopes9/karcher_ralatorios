@@ -60,9 +60,9 @@ func (r *Repository) CreateUser(ctx context.Context, input models.CreateUserInpu
 
 func (r *Repository) GetUserByID(ctx context.Context, id string) (*models.User, error) {
 	query := `
-		SELECT id, name, email, username, password_hash, role, is_active, is_master, 
-			   COALESCE(avatar_url, ''), COALESCE(last_login, '0001-01-01'), created_at, updated_at, 
-			   COALESCE(created_by, '')
+		SELECT id, name, email, username, password_hash, role, is_active, is_master,
+			   COALESCE(avatar_url, ''), last_login, created_at, updated_at,
+			   COALESCE(created_by::text, '')
 		FROM users WHERE id = $1
 	`
 
@@ -82,9 +82,9 @@ func (r *Repository) GetUserByID(ctx context.Context, id string) (*models.User, 
 
 func (r *Repository) GetUserByUsername(ctx context.Context, username string) (*models.User, error) {
 	query := `
-		SELECT id, name, email, username, password_hash, role, is_active, is_master, 
-			   COALESCE(avatar_url, ''), COALESCE(last_login, '0001-01-01'), created_at, updated_at, 
-			   COALESCE(created_by, '')
+		SELECT id, name, email, username, password_hash, role, is_active, is_master,
+			   COALESCE(avatar_url, ''), last_login, created_at, updated_at,
+			   COALESCE(created_by::text, '')
 		FROM users WHERE username = $1
 	`
 
