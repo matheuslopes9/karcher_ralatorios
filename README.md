@@ -1,158 +1,191 @@
 # Kärcher Analytics Platform
 
-Plataforma completa de analytics para análise de dados do Typebot, com autenticação JWT, dashboard interativo, exportação de relatórios e controle de acesso por roles.
+Plataforma de analytics desenvolvida pela **UC Technology** para a **Kärcher Brasil**, com o objetivo de coletar, visualizar e exportar dados de atendimento captados via **Typebot**.
 
-## 🔐 Acesso Master
+O sistema coleta automaticamente as respostas do bot (nome, modelo, número de série, código de serviço, etc.), exibe métricas em tempo real e permite exportação de relatórios em PDF, Excel e CSV.
 
-- **Usuário:** `admin`
-- **Senha:** `UCT3chn0l0gy!@`
-- **Role:** `SUPER_ADMIN` (acesso irrestrito)
+---
 
-## 👥 Roles e Permissões
+## Acesso
 
-| Role | Permissões |
-|------|-----------|
-| **SUPER_ADMIN** | Acesso total irrestrito, gerenciar usuários, logs, integrações |
-| **ADMIN** | Gerenciar usuários do grupo, ver todos os dados, exportar relatórios |
-| **ANALYST** | Ver dashboard e analytics, exportar relatórios |
-| **VIEWER** | Somente leitura no dashboard e resultados |
+| Campo | Valor |
+|-------|-------|
+| **URL (Produção)** | EasyPanel — karcher-frontend |
+| **Usuário master** | `admin` |
+| **Senha master** | `UCT3chn0l0gy!@` |
+| **Role** | `SUPER_ADMIN` (acesso irrestrito, não aparece na lista de usuários) |
 
-## 🚀 Quick Start
+---
 
-### Pré-requisitos
+## Funcionalidades
 
-- Docker e Docker Compose
-- Go 1.21+ (para desenvolvimento local)
-- Node.js 18+ (para frontend)
+### Dashboard
+- Métricas em tempo real: total de respostas, completados, incompletos, taxa de conclusão
+- Gráfico de volume por dia
+- Campos mais respondidos com barras de progresso
+- Funil de conversão (iniciaram → completaram → abandonaram)
+- Filtros de período: Hoje / 7 dias / 30 dias
+- Botão de atualização manual
 
-### 1. Clone e configuração
+### Relatórios
+- Relatório gerado automaticamente ao acessar a página
+- Seletor de período: 7 dias / 30 dias / 90 dias / Personalizado (date picker)
+- Visualização de KPIs, gráfico de barras, campos mais respondidos
+- Tabela de detalhamento paginada (10 por página)
+- Exportação em **PDF**, **Excel (XLSX)** e **CSV**
 
-```bash
-git clone <repository-url>
-cd karcher-analytics
-cp .env.example .env
+### Dados Coletados
+- Listagem paginada (15 por página) dos registros captados pelo Typebot
+- Cards expansíveis mostrando todos os campos da resposta
+- Busca por valor de campo (nome, e-mail, etc.)
+- Filtro por status (completado / incompleto)
+
+### Usuários
+- Cadastro de usuários com dois níveis de acesso: **Administrador** e **Leitura**
+- Geração automática de senha com cópia para clipboard
+- Ativar / desativar usuários
+- Usuário master oculto da listagem
+
+---
+
+## Tipos de Conta
+
+| Tipo | Acesso |
+|------|--------|
+| **Administrador** | Acesso total ao sistema, gerenciamento de usuários |
+| **Leitura** | Somente visualização (dashboard, relatórios, dados coletados) |
+
+> O tipo **SUPER_ADMIN** existe internamente para o usuário master e não pode ser criado via interface.
+
+---
+
+## Arquitetura
+
 ```
-
-### 2. Iniciar com Docker Compose
-
-```bash
-docker-compose up -d
-```
-
-O sistema estará disponível em:
-- **Backend API:** http://localhost:8080
-- **Frontend Dashboard:** http://localhost:3000
-- **Health Check:** http://localhost:8080/health
-
-### 3. Login
-
-Acesse http://localhost:3000/login e use as credenciais master acima.
-
-## 📁 Estrutura do Projeto
-
-```
-/karcher-analytics
+karcher_relatorios/
 │
-├── /backend                           # Golang
-│   ├── /cmd/server
-│   │   └── main.go                    # Entry point
-│   ├── /internal
-│   │   ├── /auth                      # Autenticação JWT
-│   │   ├── /users                     # CRUD de usuários
-│   │   ├── /collector                 # Coleta Typebot
-│   │   ├── /analyzer                  # Motor de analytics
-│   │   ├── /storage                   # PostgreSQL
-│   │   ├── /cache                     # Redis
-│   │   ├── /api                       # Rotas da API
-│   │   ├── /export                    # Exportadores
-│   │   ├── /models                    # Modelos de dados
-│   │   └── /config                    # Configurações
-│   ├── /migrations                    # Migrations SQL
+├── backend/                        # API em Go (Fiber)
+│   ├── cmd/server/main.go          # Entry point, rotas e servidor
+│   ├── internal/
+│   │   ├── auth/                   # JWT, bcrypt, middleware de autenticação
+│   │   ├── collector/              # Coleta periódica da API Typebot
+│   │   ├── config/                 # Variáveis de ambiente
+│   │   ├── export/                 # Geradores de PDF (maroto), XLSX (excelize), CSV
+│   │   ├── models/                 # Modelos de dados (User, etc.)
+│   │   ├── results/                # Queries de dashboard, relatório e listagem
+│   │   ├── seed/                   # Criação/atualização do usuário master
+│   │   ├── storage/                # Conexão PostgreSQL e migrations
+│   │   └── users/                  # CRUD de usuários
+│   ├── migrations/                 # Arquivos SQL de criação de tabelas
 │   ├── Dockerfile
 │   └── go.mod
 │
-├── /frontend                          # Next.js
-│   ├── /src
-│   │   ├── /app                       # Rotas (App Router)
-│   │   ├── /components                # Componentes React
-│   │   └── /lib                       # Utilitários
-│   ├── Dockerfile
-│   └── package.json
+├── frontend/                       # Interface em Next.js 14
+│   └── src/
+│       ├── app/
+│       │   ├── login/              # Página de login
+│       │   └── (protected)/        # Área autenticada
+│       │       ├── layout.tsx      # Sidebar + topbar
+│       │       ├── dashboard/      # Página de métricas
+│       │       ├── reports/        # Relatório com exportação
+│       │       ├── results/        # Dados coletados
+│       │       └── settings/users/ # Gerenciamento de usuários
+│       ├── lib/
+│       │   ├── api.ts              # Axios com interceptor de token
+│       │   ├── auth.ts             # Zustand store de autenticação
+│       │   └── types.ts            # Interfaces e tipos compartilhados
+│       └── middleware.ts           # Redirecionamento de rota raiz
 │
-├── docker-compose.yml
-├── .env.example
-└── README.md
+└── docker-compose.yml
 ```
 
-## 🔑 Endpoints da API
+---
 
-### Autenticação
+## Banco de Dados (PostgreSQL)
 
+| Tabela | Descrição |
+|--------|-----------|
+| `users` | Usuários do sistema |
+| `sessions` | Refresh tokens ativos |
+| `results` | Resultados coletados do Typebot |
+| `answers` | Campos/variáveis de cada resultado (nome, modelo, etc.) |
+| `schema_migrations` | Controle de migrations já aplicadas |
+
+---
+
+## API — Principais Endpoints
+
+### Públicos
 | Método | Rota | Descrição |
 |--------|------|-----------|
-| POST | `/api/auth/login` | Login com username/senha |
-| POST | `/api/auth/refresh` | Refresh token |
-| POST | `/api/auth/logout` | Logout |
-| GET | `/api/auth/me` | Dados do usuário logado |
-| PUT | `/api/auth/me/password` | Trocar senha |
-| GET | `/api/auth/sessions` | Listar sessões ativas |
+| `GET` | `/health` | Health check |
+| `POST` | `/api/auth/login` | Login |
+| `POST` | `/api/auth/refresh` | Renovar token |
 
-### Usuários (PROTEGIDO)
-
-| Método | Rota | Roles |
-|--------|------|-------|
-| GET | `/api/users` | SUPER_ADMIN, ADMIN |
-| POST | `/api/users` | SUPER_ADMIN, ADMIN |
-| PUT | `/api/users/:id` | SUPER_ADMIN, ADMIN |
-| DELETE | `/api/users/:id` | SUPER_ADMIN apenas |
-
-### Dashboard & Analytics (PROTEGIDO)
-
+### Protegidos (requer `Authorization: Bearer <token>`)
 | Método | Rota | Descrição |
 |--------|------|-----------|
-| GET | `/api/dashboard/overview` | Visão geral |
-| GET | `/api/results` | Listar resultados |
-| GET | `/api/analytics/summary` | Resumo analítico |
+| `GET` | `/api/auth/me` | Dados do usuário logado |
+| `POST` | `/api/auth/logout` | Logout |
+| `GET` | `/api/dashboard/overview` | KPIs gerais |
+| `GET` | `/api/analytics/summary?period=daily\|weekly\|monthly` | Dados do gráfico |
+| `GET` | `/api/results?page=1&limit=15&search=&completed=` | Dados coletados paginados |
+| `GET` | `/api/reports/summary?period=7d\|30d\|90d\|custom&from=&to=` | Relatório completo |
+| `GET` | `/api/export/pdf?period=...` | Download PDF |
+| `GET` | `/api/export/xlsx?period=...` | Download Excel |
+| `GET` | `/api/export/csv?period=...` | Download CSV |
+| `GET` | `/api/users` | Listar usuários (ADMIN+) |
+| `POST` | `/api/users` | Criar usuário (ADMIN+) |
+| `PUT` | `/api/users/:id` | Atualizar usuário (ADMIN+) |
+| `DELETE` | `/api/users/:id` | Excluir usuário (SUPER_ADMIN) |
 
-### Reports e Export (PROTEGIDO)
+### Debug (remover em produção futura)
+| Método | Rota | Descrição |
+|--------|------|-----------|
+| `GET` | `/debug/recollect` | Apaga dados e recoleta tudo do Typebot |
+| `GET` | `/debug/auth` | Verifica hash da senha do master |
+| `GET` | `/debug/reset-master` | Força reset da senha master |
 
-| Método | Rota | Roles |
-|--------|------|-------|
-| GET | `/api/reports` | Todos |
-| POST | `/api/export` | SUPER_ADMIN, ADMIN, ANALYST |
-| GET | `/api/audit-logs` | SUPER_ADMIN apenas |
+---
 
-## 🗃️ Banco de Dados
+## Coleta de Dados (Typebot)
 
-PostgreSQL com as seguintes tabelas:
+O backend coleta dados automaticamente a cada **30 segundos** via `GET /api/v1/typebots/{id}/results`.
 
-- `users` - Usuários do sistema
-- `sessions` - Sessões JWT (refresh tokens)
-- `results` - Resultados do Typebot
-- `answers` - Respostas individuais
-- `analysis_snapshots` - Snapshots analíticos
-- `saved_reports` - Relatórios salvos
-- `audit_logs` - Log de auditoria completo
+- Paginação automática com cursor
+- Salva apenas registros novos (verifica por `result_id`)
+- Persiste as **variáveis** do bot (campos com nome legível: `nome`, `codigo_servico`, etc.)
+- Configurável via variável de ambiente `TYPEBOT_COLLECT_INTERVAL`
 
-## 🔒 Segurança
+---
 
-- **JWT:** Access token (15min) + Refresh token (7 dias)
-- **Senhas:** Hash bcrypt com custo 12
-- **Rate Limiting:** 5 tentativas de login em 15 minutos
-- **Audit Logs:** Todas as ações são registradas
-- **Proteções:** Usuário master imutável e indeletável
+## Segurança
 
-## 🛠️ Desenvolvimento Local
+- **JWT:** Access token com expiração de 15 minutos + Refresh token de 7 dias
+- **Bcrypt:** Custo 12 para hash de senhas
+- **Rate limiting:** Máximo 5 tentativas de login em 15 minutos
+- **Usuário master:** Imutável e indeletável via API, oculto na listagem
+- **CORS:** Configurável via `API_CORS_ORIGINS`
+
+---
+
+## Desenvolvimento Local
+
+### Pré-requisitos
+- Go 1.26+
+- Node.js 18+
+- PostgreSQL 14+
 
 ### Backend
 
 ```bash
 cd backend
+cp .env.example .env   # ajustar variáveis
 go mod download
 go run cmd/server/main.go
 ```
 
-### Frontend (a ser criado)
+### Frontend
 
 ```bash
 cd frontend
@@ -160,15 +193,38 @@ npm install
 npm run dev
 ```
 
-## 📊 Próximos Passos
+Acesse em: `http://localhost:3000`
 
-1. ✅ Backend completo com autenticação e CRUD de usuários
-2. ⏳ Implementar coleta da API Typebot
-3. ⏳ Implementar motor de analytics
-4. ⏳ Criar frontend Next.js completo
-5. ⏳ Implementar exportadores (CSV, XLSX, JSON, XML, PDF)
-6. ⏳ Deploy em produção (EasyPanel)
+---
 
-## 📝 Licença
+## Deploy (EasyPanel)
 
-Exclusivo UC Technology - Kärcher Analytics Platform
+O projeto é implantado no **EasyPanel** com dois serviços Docker independentes:
+
+| Serviço | Imagem base | Porta |
+|---------|-------------|-------|
+| `karcher-backend` | `golang:alpine` | 8080 |
+| `karcher-frontend` | `node:18-alpine` | 3000 |
+
+As variáveis de ambiente são injetadas via `--build-arg` no EasyPanel. O banco PostgreSQL e Redis são provisionados como serviços internos da plataforma.
+
+Para forçar nova coleta após deploy: `GET /debug/recollect`
+
+---
+
+## Tecnologias
+
+| Camada | Tecnologia |
+|--------|-----------|
+| Backend | Go 1.26, Fiber v2, lib/pq |
+| Frontend | Next.js 14, TypeScript, Tailwind CSS, Zustand |
+| Banco | PostgreSQL 14 |
+| Cache | Redis |
+| PDF | maroto v2 |
+| Excel | excelize v2 |
+| Auth | JWT (golang-jwt/jwt v5) + bcrypt |
+| Deploy | Docker, EasyPanel |
+
+---
+
+*Desenvolvido por UC Technology do Brasil · Exclusivo Kärcher Brasil*
