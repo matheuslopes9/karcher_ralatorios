@@ -3,7 +3,6 @@ package main
 import (
 	"context"
 	"fmt"
-	"io"
 	"log"
 	"net/http"
 	"os"
@@ -78,84 +77,6 @@ func main() {
 		AllowMethods: "GET, POST, PUT, PATCH, DELETE, OPTIONS",
 	}))
 
-	// Rota de diagnóstico temporária (remover após confirmar login)
-	app.Get("/debug/auth", func(c *fiber.Ctx) error {
-		// Lê hash atual do banco
-		var dbHash string
-		var isActive bool
-		var role string
-		err := pgDB.DB.QueryRowContext(c.Context(),
-			`SELECT password_hash, is_active, role FROM users WHERE username = $1`,
-			cfg.MasterUsername,
-		).Scan(&dbHash, &isActive, &role)
-
-		var dbFound bool
-		var hashMatch bool
-		var dbHashPreview string
-		if err == nil {
-			dbFound = true
-			hashMatch = auth.CheckPasswordHash(cfg.MasterPassword, dbHash)
-			if len(dbHash) > 10 {
-				dbHashPreview = dbHash[:10] + "..."
-			}
-		}
-
-		return c.JSON(fiber.Map{
-			"master_username":  cfg.MasterUsername,
-			"password_len":     len(cfg.MasterPassword),
-			"password_last2":   cfg.MasterPassword[max(0, len(cfg.MasterPassword)-2):],
-			"db_user_found":    dbFound,
-			"db_user_active":   isActive,
-			"db_user_role":     role,
-			"db_hash_preview":  dbHashPreview,
-			"db_hash_match":    hashMatch,
-			"db_error":         fmt.Sprintf("%v", err),
-		})
-	})
-
-	// Debug: testa várias URLs da API Typebot para descobrir a correta
-	app.Get("/debug/typebot-discover", func(c *fiber.Ctx) error {
-		token := cfg.TypebotAPIToken
-		slug := cfg.TypebotBotSlug
-		bases := []string{
-			cfg.TypebotAPIURL,
-			"https://typebot.uctechnology.com.br",
-		}
-		httpClient := &http.Client{Timeout: 8 * time.Second}
-		type attempt struct {
-			URL    string `json:"url"`
-			Status int    `json:"status"`
-			Body   string `json:"body"`
-		}
-		var attempts []attempt
-		for _, base := range bases {
-			urls := []string{
-				fmt.Sprintf("%s/api/v1/typebots/%s/results?limit=1&timeFilter=allTime", base, slug),
-				fmt.Sprintf("%s/api/v1/typebots/%s/results?limit=1", base, slug),
-			}
-			for _, u := range urls {
-				req, _ := http.NewRequestWithContext(c.Context(), "GET", u, nil)
-				req.Header.Set("Authorization", "Bearer "+token)
-				resp, err := httpClient.Do(req)
-				if err != nil {
-					attempts = append(attempts, attempt{URL: u, Status: 0, Body: err.Error()})
-					continue
-				}
-				body, _ := io.ReadAll(resp.Body)
-				resp.Body.Close()
-				bodyStr := string(body)
-				if len(bodyStr) > 300 {
-					bodyStr = bodyStr[:300] + "..."
-				}
-				attempts = append(attempts, attempt{URL: u, Status: resp.StatusCode, Body: bodyStr})
-				if resp.StatusCode == 200 {
-					return c.JSON(fiber.Map{"found": true, "working_url": u, "attempts": attempts})
-				}
-			}
-		}
-		return c.JSON(fiber.Map{"found": false, "attempts": attempts})
-	})
-
 	// Reseta coleta: apaga todos os resultados e recoleta do zero
 	app.Get("/debug/recollect", func(c *fiber.Ctx) error {
 		_, err := pgDB.DB.ExecContext(c.Context(), `DELETE FROM answers`)
@@ -172,38 +93,6 @@ func main() {
 			}
 		}()
 		return c.JSON(fiber.Map{"status": "recollecting", "message": "Dados apagados, recoletando em background. Aguarde 30s e atualize o dashboard."})
-	})
-
-	// Rota de reset forçado do master (debug — remover após login funcionar)
-	app.Get("/debug/reset-master", func(c *fiber.Ctx) error {
-		newHash, err := auth.HashPassword(cfg.MasterPassword, 12)
-		if err != nil {
-			return c.Status(500).JSON(fiber.Map{"error": err.Error()})
-		}
-
-		res, err := pgDB.DB.ExecContext(c.Context(), `
-			UPDATE users SET password_hash = $1, is_active = TRUE, role = 'SUPER_ADMIN'
-			WHERE username = $2
-		`, newHash, cfg.MasterUsername)
-		if err != nil {
-			return c.Status(500).JSON(fiber.Map{"error": err.Error()})
-		}
-
-		rows, _ := res.RowsAffected()
-
-		// Se não existe, cria
-		if rows == 0 {
-			_, err = pgDB.DB.ExecContext(c.Context(), `
-				INSERT INTO users (id, name, email, username, password_hash, role, is_active, is_master)
-				VALUES (gen_random_uuid(), $1, $2, $3, $4, 'SUPER_ADMIN', TRUE, TRUE)
-			`, cfg.MasterName, cfg.MasterEmail, cfg.MasterUsername, newHash)
-			if err != nil {
-				return c.Status(500).JSON(fiber.Map{"error": "insert failed: " + err.Error()})
-			}
-			return c.JSON(fiber.Map{"status": "created", "username": cfg.MasterUsername})
-		}
-
-		return c.JSON(fiber.Map{"status": "password_reset_ok", "username": cfg.MasterUsername, "rows_affected": rows})
 	})
 
 	// Rota de health check (pública)
@@ -402,81 +291,6 @@ func main() {
 
 		return c.JSON(fiber.Map{
 			"message": "logout realizado com sucesso",
-		})
-	})
-
-	// GET /api/auth/sessions
-	protected.Get("/auth/sessions", func(c *fiber.Ctx) error {
-		userID := auth.GetUserID(c)
-		sessions, err := refreshStore.GetUserSessions(c.Context(), userID)
-		if err != nil {
-			return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
-				"error": "falha ao listar sessões",
-			})
-		}
-
-		return c.JSON(sessions)
-	})
-
-	// DELETE /api/auth/sessions/:sessionId
-	protected.Delete("/auth/sessions/:sessionId", func(c *fiber.Ctx) error {
-		sessionID := c.Params("sessionId")
-		// Implementar revogação de sessão específica
-		log.Printf("Revogando sessão: %s", sessionID)
-
-		return c.JSON(fiber.Map{
-			"message": "sessão revogada com sucesso",
-		})
-	})
-
-	// PUT /api/auth/me/password
-	protected.Put("/auth/me/password", func(c *fiber.Ctx) error {
-		var req models.ChangePasswordInput
-
-		if err := c.BodyParser(&req); err != nil {
-			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
-				"error": "corpo da requisição inválido",
-			})
-		}
-
-		userID := auth.GetUserID(c)
-		user, err := userRepo.GetUserByID(c.Context(), userID)
-		if err != nil {
-			return c.Status(fiber.StatusNotFound).JSON(fiber.Map{
-				"error": "usuário não encontrado",
-			})
-		}
-
-		// Verifica senha atual
-		if !auth.CheckPasswordHash(req.CurrentPassword, user.PasswordHash) {
-			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
-				"error": "senha atual incorreta",
-			})
-		}
-
-		// Valida nova senha
-		if err := auth.ValidatePasswordStrength(req.NewPassword); err != nil {
-			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
-				"error": err.Error(),
-			})
-		}
-
-		// Hash e salva nova senha
-		passwordHash, err := auth.HashPassword(req.NewPassword, cfg.BCryptCost)
-		if err != nil {
-			return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
-				"error": "falha ao processar senha",
-			})
-		}
-
-		if err := userRepo.ChangePassword(c.Context(), userID, passwordHash); err != nil {
-			return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
-				"error": "falha ao alterar senha",
-			})
-		}
-
-		return c.JSON(fiber.Map{
-			"message": "senha alterada com sucesso",
 		})
 	})
 
@@ -763,14 +577,6 @@ func main() {
 		c.Set("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
 		c.Set("Content-Disposition", fmt.Sprintf(`attachment; filename="%s"`, filename))
 		return c.Send(data)
-	})
-
-	// Audit logs (apenas SUPER_ADMIN)
-	protected.Get("/audit-logs", auth.RequireRole(auth.RoleSuperAdmin), func(c *fiber.Ctx) error {
-		return c.JSON(fiber.Map{
-			"data":  []interface{}{},
-			"total": 0,
-		})
 	})
 
 	// ═══════════════════════════════════════════

@@ -139,12 +139,10 @@ karcher_relatorios/
 | `PUT` | `/api/users/:id` | Atualizar usuário (ADMIN+) |
 | `DELETE` | `/api/users/:id` | Excluir usuário (SUPER_ADMIN) |
 
-### Debug (remover em produção futura)
+### Operacional
 | Método | Rota | Descrição |
 |--------|------|-----------|
 | `GET` | `/debug/recollect` | Apaga dados e recoleta tudo do Typebot |
-| `GET` | `/debug/auth` | Verifica hash da senha do master |
-| `GET` | `/debug/reset-master` | Força reset da senha master |
 
 ---
 

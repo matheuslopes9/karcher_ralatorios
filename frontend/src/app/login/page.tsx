@@ -95,7 +95,7 @@ export default function LoginPage() {
             />
           </div>
           <p className="text-sm mt-1" style={{ color: 'var(--text-muted)' }}>
-            Plataforma de monitoramento
+            Plataforma de monitoramento WhatsApp
           </p>
         </div>
 
@@ -201,7 +201,7 @@ export default function LoginPage() {
         </div>
 
         <p className="text-center text-xs mt-6" style={{ color: 'var(--text-muted)' }}>
-          © 2025 Kärcher Analytics. Todos os direitos reservados.
+          UCTechnology Copyright © 2010 - {new Date().getFullYear()} Todos os direitos reservados.
         </p>
       </div>
     </div>

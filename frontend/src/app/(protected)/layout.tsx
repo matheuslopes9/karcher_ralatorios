@@ -12,8 +12,8 @@ import {
   LogOut,
   Menu,
   X,
-  Layers,
 } from 'lucide-react';
+import Image from 'next/image';
 import Link from 'next/link';
 import toast, { Toaster } from 'react-hot-toast';
 
@@ -105,17 +105,15 @@ export default function ProtectedLayout({ children }: ProtectedLayoutProps) {
         }}
       >
         {/* Logo */}
-        <div className="flex items-center gap-3 px-5 py-5" style={{ borderBottom: '1px solid var(--border)' }}>
-          <div
-            className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0"
-            style={{ background: 'var(--karcher-yellow)' }}
-          >
-            <Layers className="w-4 h-4" style={{ color: '#0A0A0F' }} />
-          </div>
-          <div>
-            <p className="text-sm font-bold tracking-wider" style={{ color: 'var(--text-primary)' }}>KÄRCHER</p>
-            <p className="text-xs" style={{ color: 'var(--text-muted)' }}>Analytics</p>
-          </div>
+        <div className="flex items-center justify-center px-5 py-4" style={{ borderBottom: '1px solid var(--border)' }}>
+          <Image
+            src="/logo.png"
+            alt="Kärcher"
+            width={130}
+            height={52}
+            priority
+            style={{ objectFit: 'contain' }}
+          />
         </div>
 
         {/* Nav */}
