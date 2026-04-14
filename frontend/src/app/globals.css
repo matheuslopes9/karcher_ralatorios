@@ -160,6 +160,12 @@ body {
     color: var(--info);
     border: 1px solid rgba(59, 130, 246, 0.2);
   }
+  .badge-neutral {
+    @apply inline-flex items-center gap-1 text-xs font-semibold px-2 py-0.5 rounded-full;
+    background: rgba(136, 136, 170, 0.12);
+    color: var(--text-secondary);
+    border: 1px solid rgba(136, 136, 170, 0.2);
+  }
 
   /* Metric Cards */
   .metric-card {

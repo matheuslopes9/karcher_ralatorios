@@ -1,9 +1,11 @@
+export type UserRole = 'SUPER_ADMIN' | 'ADMIN' | 'VIEWER';
+
 export interface User {
   id: string;
   name: string;
   username: string;
   email: string;
-  role: 'SUPER_ADMIN' | 'ADMIN' | 'ANALYST' | 'VIEWER';
+  role: UserRole;
   is_active: boolean;
   is_master: boolean;
   avatar_url?: string;
@@ -27,26 +29,24 @@ export interface CreateUserInput {
   email: string;
   username: string;
   password: string;
-  role: 'SUPER_ADMIN' | 'ADMIN' | 'ANALYST' | 'VIEWER';
+  role: UserRole;
 }
 
 export interface UpdateUserInput {
   name?: string;
   email?: string;
-  role?: 'SUPER_ADMIN' | 'ADMIN' | 'ANALYST' | 'VIEWER';
+  role?: UserRole;
   is_active?: boolean;
 }
 
-export const roleLabels: Record<User['role'], string> = {
+export const roleLabels: Record<string, string> = {
   SUPER_ADMIN: 'Super Admin',
   ADMIN: 'Administrador',
-  ANALYST: 'Analista',
-  VIEWER: 'Visualizador',
+  VIEWER: 'Leitura',
 };
 
-export const roleColors: Record<User['role'], string> = {
-  SUPER_ADMIN: 'bg-red-100 text-red-800',
-  ADMIN: 'bg-blue-100 text-blue-800',
-  ANALYST: 'bg-green-100 text-green-800',
-  VIEWER: 'bg-gray-100 text-gray-800',
+export const roleColors: Record<string, string> = {
+  SUPER_ADMIN: 'badge-warning',
+  ADMIN: 'badge-info',
+  VIEWER: 'badge-neutral',
 };

@@ -3,26 +3,48 @@
 import { useEffect, useState } from 'react';
 import { api } from '@/lib/api';
 import { useAuthStore } from '@/lib/auth';
-import { Plus, Edit2, Key, Ban, CheckCircle, Search } from 'lucide-react';
+import { Plus, Edit2, Ban, CheckCircle, Search, X, Shuffle, Eye, EyeOff } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { User, roleLabels, roleColors } from '@/lib/types';
+
+const ROLE_OPTIONS = [
+  { value: 'ADMIN', label: 'Administrador', desc: 'Acesso total exceto configurações master' },
+  { value: 'VIEWER', label: 'Leitura', desc: 'Somente visualização' },
+];
+
+function generatePassword() {
+  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789!@#$';
+  return Array.from({ length: 12 }, () => chars[Math.floor(Math.random() * chars.length)]).join('');
+}
+
+interface CreateForm {
+  name: string;
+  username: string;
+  email: string;
+  password: string;
+  role: string;
+  is_active: boolean;
+}
 
 export default function UsersPage() {
   const { user: currentUser } = useAuthStore();
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
+  const [creating, setCreating] = useState(false);
   const [search, setSearch] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [form, setForm] = useState<CreateForm>({
+    name: '', username: '', email: '', password: '', role: 'VIEWER', is_active: true,
+  });
 
-  useEffect(() => {
-    loadUsers();
-  }, []);
+  useEffect(() => { loadUsers(); }, []);
 
   const loadUsers = async () => {
     try {
-      const response = await api.get('/api/users');
-      setUsers(response.data.data || []);
-    } catch (error) {
+      const res = await api.get('/api/users');
+      setUsers(res.data.data || []);
+    } catch {
       toast.error('Falha ao carregar usuários');
     } finally {
       setLoading(false);
@@ -31,120 +53,158 @@ export default function UsersPage() {
 
   const handleToggleActive = async (user: User) => {
     try {
-      await api.put(`/api/users/${user.id}`, {
-        is_active: !user.is_active,
-      });
+      await api.put(`/api/users/${user.id}`, { is_active: !user.is_active });
       toast.success(`Usuário ${user.is_active ? 'desativado' : 'ativado'}`);
       loadUsers();
-    } catch (error) {
+    } catch {
       toast.error('Falha ao atualizar usuário');
     }
   };
 
+  const handleCreate = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!form.name || !form.username || !form.email || !form.password) {
+      toast.error('Preencha todos os campos obrigatórios');
+      return;
+    }
+    setCreating(true);
+    try {
+      await api.post('/api/users', form);
+      toast.success('Usuário criado com sucesso!');
+      setShowModal(false);
+      setForm({ name: '', username: '', email: '', password: '', role: 'VIEWER', is_active: true });
+      loadUsers();
+    } catch (err: any) {
+      toast.error(err?.response?.data?.error || 'Falha ao criar usuário');
+    } finally {
+      setCreating(false);
+    }
+  };
+
+  const handleGenPassword = () => {
+    const pwd = generatePassword();
+    setForm(f => ({ ...f, password: pwd }));
+    setShowPassword(true);
+    navigator.clipboard?.writeText(pwd).then(() => toast.success('Senha copiada!'));
+  };
+
   const filteredUsers = users.filter(
-    (u) =>
+    u =>
       u.name.toLowerCase().includes(search.toLowerCase()) ||
       u.email.toLowerCase().includes(search.toLowerCase()) ||
-      u.username.toLowerCase().includes(search.toLowerCase())
+      u.username.toLowerCase().includes(search.toLowerCase()),
   );
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex justify-between items-center">
+    <div className="space-y-5">
+
+      {/* Toolbar */}
+      <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="relative">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5" style={{ color: 'var(--text-muted)' }} />
           <input
             type="text"
             placeholder="Buscar usuários..."
             value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="input-field pl-10 w-80"
+            onChange={e => setSearch(e.target.value)}
+            className="input-field pl-9 w-64 text-sm"
           />
         </div>
-        <button
-          onClick={() => setShowModal(true)}
-          className="btn-primary flex items-center gap-2"
-        >
+        <button onClick={() => setShowModal(true)} className="btn-primary text-sm py-2 px-4 flex items-center gap-2">
           <Plus className="w-4 h-4" />
           Novo Usuário
         </button>
       </div>
 
-      {/* Tabela */}
-      <div className="bg-white rounded-lg shadow overflow-hidden">
-        <table className="w-full">
-          <thead className="bg-gray-50 border-b border-gray-200">
+      {/* Table */}
+      <div className="table-container">
+        <table>
+          <thead>
             <tr>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Nome</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Username</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Email</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Role</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Ações</th>
+              <th>Usuário</th>
+              <th>Username</th>
+              <th>E-mail</th>
+              <th>Tipo de Conta</th>
+              <th>Status</th>
+              <th>Ações</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-gray-200">
+          <tbody>
             {loading ? (
               <tr>
-                <td colSpan={6} className="px-6 py-8 text-center text-gray-500">
-                  Carregando...
+                <td colSpan={6} className="py-12 text-center">
+                  <div className="spinner w-6 h-6 mx-auto mb-2" />
+                  <span style={{ color: 'var(--text-muted)' }}>Carregando...</span>
+                </td>
+              </tr>
+            ) : filteredUsers.length === 0 ? (
+              <tr>
+                <td colSpan={6} className="py-12 text-center text-sm" style={{ color: 'var(--text-muted)' }}>
+                  {search ? 'Nenhum usuário encontrado.' : 'Nenhum usuário cadastrado.'}
                 </td>
               </tr>
             ) : (
-              filteredUsers.map((user) => (
-                <tr key={user.id} className="hover:bg-gray-50">
-                  <td className="px-6 py-4">
+              filteredUsers.map(user => (
+                <tr key={user.id}>
+                  {/* Nome */}
+                  <td>
                     <div className="flex items-center gap-3">
-                      <div className="w-8 h-8 bg-primary-600 rounded-full flex items-center justify-center text-white text-sm font-semibold">
+                      <div
+                        className="w-8 h-8 rounded-lg flex items-center justify-center text-xs font-bold flex-shrink-0"
+                        style={{ background: 'var(--karcher-yellow)', color: '#0A0A0F' }}
+                      >
                         {user.name.charAt(0).toUpperCase()}
                       </div>
-                      <span className="text-sm font-medium text-gray-900">{user.name}</span>
-                      {user.is_master && (
-                        <span className="text-xs bg-yellow-100 text-yellow-800 px-2 py-1 rounded">
-                          🔒 Master
-                        </span>
-                      )}
+                      <span className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>
+                        {user.name}
+                      </span>
                     </div>
                   </td>
-                  <td className="px-6 py-4 text-sm text-gray-600">@{user.username}</td>
-                  <td className="px-6 py-4 text-sm text-gray-600">{user.email}</td>
-                  <td className="px-6 py-4">
-                    <span className={`px-2 py-1 text-xs font-semibold rounded-full ${roleColors[user.role]}`}>
-                      {roleLabels[user.role]}
+                  {/* Username */}
+                  <td className="text-sm font-mono" style={{ color: 'var(--text-muted)' }}>
+                    @{user.username}
+                  </td>
+                  {/* Email */}
+                  <td className="text-sm" style={{ color: 'var(--text-secondary)' }}>
+                    {user.email}
+                  </td>
+                  {/* Role */}
+                  <td>
+                    <span className={roleColors[user.role] || 'badge-neutral'}>
+                      {roleLabels[user.role] || user.role}
                     </span>
                   </td>
-                  <td className="px-6 py-4">
+                  {/* Status */}
+                  <td>
                     {user.is_active ? (
-                      <span className="text-green-600 flex items-center gap-1">
-                        <CheckCircle className="w-4 h-4" />
-                        Ativo
+                      <span className="flex items-center gap-1.5 text-xs font-medium" style={{ color: 'var(--success)' }}>
+                        <CheckCircle className="w-3.5 h-3.5" /> Ativo
                       </span>
                     ) : (
-                      <span className="text-red-600 flex items-center gap-1">
-                        <Ban className="w-4 h-4" />
-                        Inativo
+                      <span className="flex items-center gap-1.5 text-xs font-medium" style={{ color: 'var(--error)' }}>
+                        <Ban className="w-3.5 h-3.5" /> Inativo
                       </span>
                     )}
                   </td>
-                  <td className="px-6 py-4">
-                    {!user.is_master && (
-                      <div className="flex gap-2">
-                        <button className="text-blue-600 hover:text-blue-700" title="Editar">
-                          <Edit2 className="w-4 h-4" />
-                        </button>
-                        <button className="text-green-600 hover:text-green-700" title="Resetar senha">
-                          <Key className="w-4 h-4" />
-                        </button>
-                        <button
-                          onClick={() => handleToggleActive(user)}
-                          className={user.is_active ? 'text-red-600 hover:text-red-700' : 'text-green-600 hover:text-green-700'}
-                          title={user.is_active ? 'Desativar' : 'Ativar'}
-                        >
-                          {user.is_active ? <Ban className="w-4 h-4" /> : <CheckCircle className="w-4 h-4" />}
-                        </button>
-                      </div>
-                    )}
+                  {/* Ações */}
+                  <td>
+                    <div className="flex items-center gap-1">
+                      <button
+                        className="p-1.5 rounded-lg transition-colors"
+                        style={{ color: 'var(--text-muted)' }}
+                        title="Editar"
+                      >
+                        <Edit2 className="w-3.5 h-3.5" />
+                      </button>
+                      <button
+                        onClick={() => handleToggleActive(user)}
+                        className="p-1.5 rounded-lg transition-colors"
+                        style={{ color: user.is_active ? 'var(--error)' : 'var(--success)' }}
+                        title={user.is_active ? 'Desativar' : 'Ativar'}
+                      >
+                        {user.is_active ? <Ban className="w-3.5 h-3.5" /> : <CheckCircle className="w-3.5 h-3.5" />}
+                      </button>
+                    </div>
                   </td>
                 </tr>
               ))
@@ -153,80 +213,178 @@ export default function UsersPage() {
         </table>
       </div>
 
-      {/* Modal de criação */}
+      {/* Create modal */}
       {showModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
-          <div className="bg-white rounded-lg shadow-xl w-full max-w-lg p-6">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">
-              Criar Novo Usuário
-            </h3>
-            
-            <form className="space-y-4">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: 'rgba(0,0,0,0.75)' }}>
+          <div
+            className="w-full max-w-lg rounded-2xl p-6 space-y-5"
+            style={{ background: 'var(--bg-surface)', border: '1px solid var(--border)' }}
+          >
+            {/* Modal header */}
+            <div className="flex items-center justify-between">
+              <h3 className="text-base font-semibold" style={{ color: 'var(--text-primary)' }}>
+                Criar Novo Usuário
+              </h3>
+              <button
+                onClick={() => setShowModal(false)}
+                className="p-1.5 rounded-lg transition-colors"
+                style={{ color: 'var(--text-muted)' }}
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <form onSubmit={handleCreate} className="space-y-4">
+              {/* Nome */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-xs font-medium mb-1.5" style={{ color: 'var(--text-secondary)' }}>
                   Nome Completo
                 </label>
-                <input type="text" className="input-field" placeholder="João Silva" required />
+                <input
+                  type="text"
+                  value={form.name}
+                  onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
+                  className="input-field text-sm"
+                  placeholder="João Silva"
+                  required
+                />
               </div>
 
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Username
-                </label>
-                <input type="text" className="input-field" placeholder="joao.silva" required />
+              {/* Username + Email */}
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-medium mb-1.5" style={{ color: 'var(--text-secondary)' }}>
+                    Username
+                  </label>
+                  <input
+                    type="text"
+                    value={form.username}
+                    onChange={e => setForm(f => ({ ...f, username: e.target.value }))}
+                    className="input-field text-sm"
+                    placeholder="joao.silva"
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium mb-1.5" style={{ color: 'var(--text-secondary)' }}>
+                    E-mail
+                  </label>
+                  <input
+                    type="email"
+                    value={form.email}
+                    onChange={e => setForm(f => ({ ...f, email: e.target.value }))}
+                    className="input-field text-sm"
+                    placeholder="joao@empresa.com"
+                    required
+                  />
+                </div>
               </div>
 
+              {/* Senha */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Email
-                </label>
-                <input type="email" className="input-field" placeholder="joao@empresa.com" required />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-xs font-medium mb-1.5" style={{ color: 'var(--text-secondary)' }}>
                   Senha
                 </label>
                 <div className="flex gap-2">
-                  <input type="password" className="input-field flex-1" placeholder="Senha forte..." required />
-                  <button type="button" className="btn-secondary text-sm">
+                  <div className="relative flex-1">
+                    <input
+                      type={showPassword ? 'text' : 'password'}
+                      value={form.password}
+                      onChange={e => setForm(f => ({ ...f, password: e.target.value }))}
+                      className="input-field text-sm pr-9 w-full"
+                      placeholder="Senha forte..."
+                      required
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword(v => !v)}
+                      className="absolute right-2.5 top-1/2 -translate-y-1/2"
+                      style={{ color: 'var(--text-muted)' }}
+                    >
+                      {showPassword ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+                    </button>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={handleGenPassword}
+                    className="btn-secondary text-xs px-3 flex items-center gap-1.5 flex-shrink-0"
+                    title="Gerar senha aleatória"
+                  >
+                    <Shuffle className="w-3.5 h-3.5" style={{ color: 'var(--karcher-yellow)' }} />
                     Gerar
                   </button>
                 </div>
               </div>
 
+              {/* Tipo de Conta */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Role
+                <label className="block text-xs font-medium mb-1.5" style={{ color: 'var(--text-secondary)' }}>
+                  Tipo de Conta
                 </label>
-                <select className="input-field" required>
-                  <option value="VIEWER">Viewer (Somente leitura)</option>
-                  <option value="ANALYST">Analyst (Analista)</option>
-                  {currentUser?.role === 'SUPER_ADMIN' && (
-                    <>
-                      <option value="ADMIN">Admin (Administrador)</option>
-                      <option value="SUPER_ADMIN">Super Admin</option>
-                    </>
-                  )}
-                </select>
+                <div className="grid grid-cols-2 gap-2">
+                  {ROLE_OPTIONS.map(opt => (
+                    <label
+                      key={opt.value}
+                      className="flex flex-col gap-0.5 rounded-xl p-3 cursor-pointer transition-all"
+                      style={{
+                        background: form.role === opt.value ? 'rgba(255,209,0,0.08)' : 'var(--bg-elevated)',
+                        border: `1px solid ${form.role === opt.value ? 'var(--karcher-yellow)' : 'var(--border)'}`,
+                      }}
+                    >
+                      <input
+                        type="radio"
+                        name="role"
+                        value={opt.value}
+                        checked={form.role === opt.value}
+                        onChange={() => setForm(f => ({ ...f, role: opt.value }))}
+                        className="sr-only"
+                      />
+                      <span className="text-sm font-medium" style={{ color: form.role === opt.value ? 'var(--karcher-yellow)' : 'var(--text-primary)' }}>
+                        {opt.label}
+                      </span>
+                      <span className="text-xs" style={{ color: 'var(--text-muted)' }}>
+                        {opt.desc}
+                      </span>
+                    </label>
+                  ))}
+                </div>
               </div>
 
-              <div className="flex items-center gap-2">
-                <input type="checkbox" id="is_active" defaultChecked />
-                <label htmlFor="is_active" className="text-sm text-gray-700">
+              {/* Ativo */}
+              <label className="flex items-center gap-2.5 cursor-pointer">
+                <div
+                  onClick={() => setForm(f => ({ ...f, is_active: !f.is_active }))}
+                  className="w-9 h-5 rounded-full transition-colors flex-shrink-0 relative cursor-pointer"
+                  style={{ background: form.is_active ? 'var(--karcher-yellow)' : 'var(--bg-elevated)', border: '1px solid var(--border)' }}
+                >
+                  <div
+                    className="absolute top-0.5 w-4 h-4 rounded-full transition-transform"
+                    style={{
+                      background: form.is_active ? '#0A0A0F' : 'var(--text-muted)',
+                      transform: form.is_active ? 'translateX(18px)' : 'translateX(2px)',
+                    }}
+                  />
+                </div>
+                <span className="text-sm" style={{ color: 'var(--text-secondary)' }}>
                   Usuário ativo
-                </label>
-              </div>
+                </span>
+              </label>
 
-              <div className="flex justify-end gap-2 pt-4">
+              {/* Actions */}
+              <div className="flex justify-end gap-2 pt-2">
                 <button
                   type="button"
                   onClick={() => setShowModal(false)}
-                  className="btn-secondary"
+                  className="btn-secondary text-sm py-2 px-4"
                 >
                   Cancelar
                 </button>
-                <button type="submit" className="btn-primary">
+                <button
+                  type="submit"
+                  disabled={creating}
+                  className="btn-primary text-sm py-2 px-4 flex items-center gap-2"
+                >
+                  {creating ? <div className="spinner w-3.5 h-3.5" /> : <Plus className="w-3.5 h-3.5" />}
                   Criar Usuário
                 </button>
               </div>
