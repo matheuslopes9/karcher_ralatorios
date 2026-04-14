@@ -105,43 +105,6 @@ func ToPDF(summary *results.ReportSummary) ([]byte, error) {
 	}
 	m.AddRows(kRow, row.New(5))
 
-	// ── Top campos ────────────────────────────────────────────
-	if len(summary.TopFields) > 0 {
-		m.AddRow(7, col.New(12).Add(
-			text.New("CAMPOS MAIS RESPONDIDOS", props.Text{
-				Size:  8,
-				Style: fontstyle.Bold,
-				Color: pYellow,
-			}),
-		))
-
-		maxCount := 1
-		if summary.TopFields[0].Count > 0 {
-			maxCount = summary.TopFields[0].Count
-		}
-
-		for _, f := range summary.TopFields {
-			if f.FieldKey == "" {
-				continue
-			}
-			barWidth := int(float64(f.Count) / float64(maxCount) * 8)
-			if barWidth < 1 {
-				barWidth = 1
-			}
-
-			r := row.New(5)
-			r.Add(col.New(2).Add(
-				text.New(labelOf(f.FieldKey), props.Text{Size: 7, Color: pGray}),
-			))
-			r.Add(col.New(barWidth).WithStyle(&props.Cell{BackgroundColor: pYellow}))
-			r.Add(col.New(1).Add(
-				text.New(fmt.Sprintf("%d", f.Count), props.Text{Size: 7, Color: pGray, Align: align.Right}),
-			))
-			m.AddRows(r)
-		}
-		m.AddRow(5)
-	}
-
 	// ── Data table ────────────────────────────────────────────
 	if len(summary.Rows) > 0 {
 		cols := collectColumns(summary.Rows)

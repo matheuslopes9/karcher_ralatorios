@@ -6,6 +6,7 @@ import { useAuthStore } from '@/lib/auth';
 import { api } from '@/lib/api';
 import toast, { Toaster } from 'react-hot-toast';
 import { Eye, EyeOff, Lock, User } from 'lucide-react';
+import Image from 'next/image';
 
 export default function LoginPage() {
   const router = useRouter();
@@ -83,17 +84,16 @@ export default function LoginPage() {
       <div className="relative w-full max-w-sm px-4">
         {/* Logo */}
         <div className="text-center mb-10">
-          <div
-            className="inline-flex items-center justify-center w-14 h-14 rounded-2xl mb-5"
-            style={{ background: 'var(--karcher-yellow)', boxShadow: '0 0 32px rgba(255,209,0,0.3)' }}
-          >
-            <svg width="28" height="28" viewBox="0 0 24 24" fill="none">
-              <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" stroke="#0A0A0F" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-            </svg>
+          <div className="inline-flex items-center justify-center mb-5">
+            <Image
+              src="/logo.png"
+              alt="Kärcher"
+              width={180}
+              height={72}
+              priority
+              style={{ objectFit: 'contain' }}
+            />
           </div>
-          <h1 className="text-2xl font-bold tracking-wide" style={{ color: 'var(--text-primary)' }}>
-            KÄRCHER ANALYTICS
-          </h1>
           <p className="text-sm mt-1" style={{ color: 'var(--text-muted)' }}>
             Plataforma de monitoramento
           </p>
