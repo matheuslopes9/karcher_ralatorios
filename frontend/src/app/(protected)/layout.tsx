@@ -4,10 +4,10 @@ import { useState, useEffect } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import { useAuthStore } from '@/lib/auth';
 import { api } from '@/lib/api';
-import { 
-  LayoutDashboard, 
-  FileText, 
-  BarChart3, 
+import {
+  LayoutDashboard,
+  FileText,
+  BarChart3,
   FileOutput,
   Settings,
   Users,
@@ -16,9 +16,10 @@ import {
   LogOut,
   Menu,
   X,
+  Layers,
 } from 'lucide-react';
 import Link from 'next/link';
-import toast from 'react-hot-toast';
+import toast, { Toaster } from 'react-hot-toast';
 
 interface ProtectedLayoutProps {
   children: React.ReactNode;
@@ -43,7 +44,6 @@ export default function ProtectedLayout({ children }: ProtectedLayoutProps) {
   const { user, isAuthenticated, logout, isLoading } = useAuthStore();
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
-  // Verificar autenticação
   useEffect(() => {
     if (!isLoading && !isAuthenticated) {
       router.push('/login');
@@ -52,151 +52,173 @@ export default function ProtectedLayout({ children }: ProtectedLayoutProps) {
 
   const handleLogout = async () => {
     const refreshToken = localStorage.getItem('refresh_token');
-    
     try {
       await api.post('/api/auth/logout', { refresh_token: refreshToken });
-    } catch (error) {
-      console.error('Logout error:', error);
-    } finally {
+    } catch {}
+    finally {
       logout();
-      toast.success('Logout realizado com sucesso');
+      toast.success('Até logo!');
       router.push('/login');
     }
   };
 
   if (isLoading || !isAuthenticated) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+      <div className="min-h-screen flex items-center justify-center" style={{ background: 'var(--bg-base)' }}>
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600 mx-auto"></div>
-          <p className="mt-4 text-gray-600">Carregando...</p>
+          <div className="spinner w-10 h-10 mx-auto" />
+          <p className="mt-4 text-sm" style={{ color: 'var(--text-muted)' }}>Carregando...</p>
         </div>
       </div>
     );
   }
 
+  const currentLabel =
+    menuItems.find((i) => pathname.startsWith(i.href))?.label ||
+    settingsItems.find((i) => pathname.startsWith(i.href))?.label ||
+    'Dashboard';
+
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Mobile sidebar toggle */}
-      <button
-        onClick={() => setSidebarOpen(!sidebarOpen)}
-        className="lg:hidden fixed top-4 left-4 z-50 p-2 bg-white rounded-lg shadow-md"
-      >
-        {sidebarOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
-      </button>
+    <div className="min-h-screen flex" style={{ background: 'var(--bg-base)' }}>
+      <Toaster
+        position="top-right"
+        toastOptions={{
+          style: {
+            background: 'var(--bg-elevated)',
+            color: 'var(--text-primary)',
+            border: '1px solid var(--border)',
+            fontSize: '14px',
+          },
+        }}
+      />
+
+      {/* Mobile overlay */}
+      {sidebarOpen && (
+        <div
+          className="fixed inset-0 z-30 lg:hidden"
+          style={{ background: 'rgba(0,0,0,0.7)' }}
+          onClick={() => setSidebarOpen(false)}
+        />
+      )}
 
       {/* Sidebar */}
       <aside
-        className={`fixed top-0 left-0 z-40 w-64 h-screen transition-transform ${
+        className={`fixed top-0 left-0 z-40 flex flex-col h-screen w-60 transition-transform duration-300 ${
           sidebarOpen ? 'translate-x-0' : '-translate-x-full'
-        } lg:translate-x-0 bg-white border-r border-gray-200`}
+        } lg:translate-x-0`}
+        style={{
+          background: 'var(--bg-surface)',
+          borderRight: '1px solid var(--border)',
+        }}
       >
-        <div className="flex flex-col h-full">
-          {/* Logo */}
-          <div className="p-6 border-b border-gray-200">
-            <h1 className="text-2xl font-bold text-primary-600">KÄRCHER</h1>
-            <p className="text-sm text-gray-500">Analytics Platform</p>
+        {/* Logo */}
+        <div className="flex items-center gap-3 px-5 py-5" style={{ borderBottom: '1px solid var(--border)' }}>
+          <div
+            className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0"
+            style={{ background: 'var(--karcher-yellow)' }}
+          >
+            <Layers className="w-4 h-4" style={{ color: '#0A0A0F' }} />
           </div>
+          <div>
+            <p className="text-sm font-bold tracking-wider" style={{ color: 'var(--text-primary)' }}>KÄRCHER</p>
+            <p className="text-xs" style={{ color: 'var(--text-muted)' }}>Analytics</p>
+          </div>
+        </div>
 
-          {/* Menu */}
-          <nav className="flex-1 p-4 space-y-1 overflow-y-auto">
-            {menuItems.map((item) => {
+        {/* Nav */}
+        <nav className="flex-1 px-3 py-4 space-y-0.5 overflow-y-auto">
+          <p className="px-4 py-2 text-xs font-semibold uppercase tracking-widest" style={{ color: 'var(--text-muted)' }}>
+            Menu
+          </p>
+          {menuItems.map((item) => {
+            const Icon = item.icon;
+            const isActive = pathname.startsWith(item.href);
+            return (
+              <Link
+                key={item.href}
+                href={item.href}
+                className={`nav-link ${isActive ? 'active' : ''}`}
+                onClick={() => setSidebarOpen(false)}
+              >
+                <Icon className="w-4 h-4 flex-shrink-0" />
+                {item.label}
+              </Link>
+            );
+          })}
+
+          <div className="pt-4 mt-2" style={{ borderTop: '1px solid var(--border)' }}>
+            <p className="px-4 py-2 text-xs font-semibold uppercase tracking-widest" style={{ color: 'var(--text-muted)' }}>
+              Configurações
+            </p>
+            {settingsItems.map((item) => {
+              if (item.roles && !item.roles.includes(user?.role || '')) return null;
               const Icon = item.icon;
               const isActive = pathname.startsWith(item.href);
-              
               return (
                 <Link
                   key={item.href}
                   href={item.href}
-                  className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${
-                    isActive
-                      ? 'bg-primary-50 text-primary-600 font-medium'
-                      : 'text-gray-700 hover:bg-gray-100'
-                  }`}
+                  className={`nav-link ${isActive ? 'active' : ''}`}
                   onClick={() => setSidebarOpen(false)}
                 >
-                  <Icon className="w-5 h-5" />
+                  <Icon className="w-4 h-4 flex-shrink-0" />
                   {item.label}
                 </Link>
               );
             })}
-
-            {/* Settings section */}
-            <div className="pt-4 mt-4 border-t border-gray-200">
-              <p className="px-4 py-2 text-xs font-semibold text-gray-400 uppercase">Configurações</p>
-              {settingsItems.map((item) => {
-                if (item.roles && !item.roles.includes(user?.role || '')) {
-                  return null;
-                }
-                
-                const Icon = item.icon;
-                const isActive = pathname.startsWith(item.href);
-                
-                return (
-                  <Link
-                    key={item.href}
-                    href={item.href}
-                    className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${
-                      isActive
-                        ? 'bg-primary-50 text-primary-600 font-medium'
-                        : 'text-gray-700 hover:bg-gray-100'
-                    }`}
-                    onClick={() => setSidebarOpen(false)}
-                  >
-                    <Icon className="w-5 h-5" />
-                    {item.label}
-                  </Link>
-                );
-              })}
-            </div>
-          </nav>
-
-          {/* User info */}
-          <div className="p-4 border-t border-gray-200">
-            <div className="flex items-center gap-3 mb-3">
-              <div className="w-10 h-10 bg-primary-600 rounded-full flex items-center justify-center text-white font-semibold">
-                {user?.name?.charAt(0).toUpperCase()}
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium text-gray-900 truncate">{user?.name}</p>
-                <p className="text-xs text-gray-500">{user?.role}</p>
-              </div>
-            </div>
-            <button
-              onClick={handleLogout}
-              className="w-full flex items-center justify-center gap-2 px-4 py-2 text-sm text-red-600 bg-red-50 hover:bg-red-100 rounded-lg transition-colors"
-            >
-              <LogOut className="w-4 h-4" />
-              Sair
-            </button>
           </div>
+        </nav>
+
+        {/* User footer */}
+        <div className="px-3 py-4" style={{ borderTop: '1px solid var(--border)' }}>
+          <div className="flex items-center gap-3 px-3 py-2 rounded-lg mb-2" style={{ background: 'var(--bg-elevated)' }}>
+            <div
+              className="w-8 h-8 rounded-lg flex items-center justify-center text-xs font-bold flex-shrink-0"
+              style={{ background: 'var(--karcher-yellow)', color: '#0A0A0F' }}
+            >
+              {user?.name?.charAt(0).toUpperCase()}
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-xs font-medium truncate" style={{ color: 'var(--text-primary)' }}>{user?.name}</p>
+              <p className="text-xs truncate" style={{ color: 'var(--text-muted)' }}>{user?.role}</p>
+            </div>
+          </div>
+          <button
+            onClick={handleLogout}
+            className="btn-danger w-full text-xs py-2"
+          >
+            <LogOut className="w-3.5 h-3.5" />
+            Sair
+          </button>
         </div>
       </aside>
 
-      {/* Main content */}
-      <div className="lg:ml-64">
-        {/* Top bar */}
-        <header className="sticky top-0 z-30 bg-white border-b border-gray-200">
-          <div className="px-6 py-4">
-            <h2 className="text-xl font-semibold text-gray-900">
-              {menuItems.find((item) => pathname.startsWith(item.href))?.label ||
-                settingsItems.find((item) => pathname.startsWith(item.href))?.label ||
-                'Dashboard'}
-            </h2>
-          </div>
+      {/* Main */}
+      <div className="flex-1 flex flex-col min-w-0 lg:ml-60">
+        {/* Topbar */}
+        <header
+          className="sticky top-0 z-20 flex items-center gap-4 px-6 py-4"
+          style={{
+            background: 'rgba(10,10,15,0.85)',
+            backdropFilter: 'blur(12px)',
+            borderBottom: '1px solid var(--border)',
+          }}
+        >
+          <button
+            onClick={() => setSidebarOpen(!sidebarOpen)}
+            className="lg:hidden p-1.5 rounded-lg transition-colors"
+            style={{ color: 'var(--text-secondary)' }}
+          >
+            {sidebarOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+          </button>
+          <h2 className="text-base font-semibold" style={{ color: 'var(--text-primary)' }}>
+            {currentLabel}
+          </h2>
         </header>
 
-        {/* Page content */}
-        <main className="p-6">{children}</main>
+        {/* Page */}
+        <main className="flex-1 p-6">{children}</main>
       </div>
-
-      {/* Overlay for mobile */}
-      {sidebarOpen && (
-        <div
-          className="fixed inset-0 z-30 bg-black bg-opacity-50 lg:hidden"
-          onClick={() => setSidebarOpen(false)}
-        />
-      )}
     </div>
   );
 }

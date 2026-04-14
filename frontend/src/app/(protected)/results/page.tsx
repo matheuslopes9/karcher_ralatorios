@@ -2,13 +2,15 @@
 
 import { useEffect, useState } from 'react';
 import { api } from '@/lib/api';
-import { Eye, Download } from 'lucide-react';
+import { Eye, Download, Search, Filter } from 'lucide-react';
 
 export default function ResultsPage() {
   const [results, setResults] = useState([]);
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(1);
   const [total, setTotal] = useState(0);
+  const [search, setSearch] = useState('');
+  const [statusFilter, setStatusFilter] = useState('');
 
   useEffect(() => {
     loadResults();
@@ -19,81 +21,100 @@ export default function ResultsPage() {
       const response = await api.get(`/api/results?page=${page}&limit=50`);
       setResults(response.data.data || []);
       setTotal(response.data.total || 0);
-    } catch (error) {
-      console.error('Failed to load results:', error);
+    } catch {
+      // silently fail
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="space-y-6">
-      {/* Filtros e Export */}
-      <div className="flex justify-between items-center">
-        <div className="flex gap-2">
-          <input
-            type="text"
-            placeholder="Buscar..."
-            className="input-field w-64"
-          />
-          <select className="input-field">
-            <option value="">Todos os status</option>
-            <option value="true">Completados</option>
-            <option value="false">Incompletos</option>
-          </select>
+    <div className="space-y-5">
+      {/* Toolbar */}
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="flex items-center gap-2">
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5" style={{ color: 'var(--text-muted)' }} />
+            <input
+              type="text"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Buscar..."
+              className="input-field pl-8 w-52 text-sm"
+            />
+          </div>
+          <div className="relative">
+            <Filter className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5" style={{ color: 'var(--text-muted)' }} />
+            <select
+              value={statusFilter}
+              onChange={(e) => setStatusFilter(e.target.value)}
+              className="input-field pl-8 pr-8 text-sm appearance-none"
+            >
+              <option value="">Todos os status</option>
+              <option value="true">Completados</option>
+              <option value="false">Incompletos</option>
+            </select>
+          </div>
         </div>
-        <button className="btn-primary flex items-center gap-2">
+        <button className="btn-primary text-sm py-2 px-4">
           <Download className="w-4 h-4" />
           Exportar
         </button>
       </div>
 
-      {/* Tabela */}
-      <div className="bg-white rounded-lg shadow overflow-hidden">
-        <table className="w-full">
-          <thead className="bg-gray-50 border-b border-gray-200">
+      {/* Table */}
+      <div className="table-container">
+        <table>
+          <thead>
             <tr>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">ID</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Data/Hora</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Duração</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Ações</th>
+              <th>ID</th>
+              <th>Data/Hora</th>
+              <th>Status</th>
+              <th>Duração</th>
+              <th>Ações</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-gray-200">
+          <tbody>
             {loading ? (
               <tr>
-                <td colSpan={5} className="px-6 py-8 text-center text-gray-500">
+                <td colSpan={5} className="py-12 text-center" style={{ color: 'var(--text-muted)' }}>
+                  <div className="spinner w-6 h-6 mx-auto mb-2" />
                   Carregando...
                 </td>
               </tr>
             ) : results.length === 0 ? (
               <tr>
-                <td colSpan={5} className="px-6 py-8 text-center text-gray-500">
+                <td colSpan={5} className="py-12 text-center" style={{ color: 'var(--text-muted)' }}>
                   Nenhum resultado encontrado
                 </td>
               </tr>
             ) : (
               results.map((result: any) => (
-                <tr key={result.id} className="hover:bg-gray-50">
-                  <td className="px-6 py-4 text-sm text-gray-900">{result.id?.slice(0, 8)}...</td>
-                  <td className="px-6 py-4 text-sm text-gray-600">
-                    {result.created_at ? new Date(result.created_at).toLocaleString('pt-BR') : '-'}
+                <tr key={result.id}>
+                  <td className="font-mono text-xs" style={{ color: 'var(--text-secondary)' }}>
+                    {result.id?.slice(0, 8)}...
                   </td>
-                  <td className="px-6 py-4">
-                    <span className={`px-2 py-1 text-xs font-semibold rounded-full ${
-                      result.is_completed
-                        ? 'bg-green-100 text-green-800'
-                        : 'bg-yellow-100 text-yellow-800'
-                    }`}>
-                      {result.is_completed ? '✅ Completado' : '⏳ Incompleto'}
-                    </span>
+                  <td style={{ color: 'var(--text-secondary)' }}>
+                    {result.created_at ? new Date(result.created_at).toLocaleString('pt-BR') : '—'}
                   </td>
-                  <td className="px-6 py-4 text-sm text-gray-600">
-                    {result.duration_secs ? `${Math.floor(result.duration_secs / 60)}m ${result.duration_secs % 60}s` : '-'}
+                  <td>
+                    {result.is_completed ? (
+                      <span className="badge-success">Completado</span>
+                    ) : (
+                      <span className="badge-warning">Incompleto</span>
+                    )}
                   </td>
-                  <td className="px-6 py-4">
-                    <button className="text-primary-600 hover:text-primary-700">
+                  <td style={{ color: 'var(--text-secondary)' }}>
+                    {result.duration_secs
+                      ? `${Math.floor(result.duration_secs / 60)}m ${result.duration_secs % 60}s`
+                      : '—'}
+                  </td>
+                  <td>
+                    <button
+                      className="p-1.5 rounded-lg transition-colors"
+                      style={{ color: 'var(--text-muted)' }}
+                      title="Ver detalhes"
+                    >
                       <Eye className="w-4 h-4" />
                     </button>
                   </td>
@@ -104,23 +125,29 @@ export default function ResultsPage() {
         </table>
       </div>
 
-      {/* Paginação */}
-      <div className="flex justify-between items-center">
-        <p className="text-sm text-gray-600">
-          Mostrando {results.length} de {total} resultados
+      {/* Pagination */}
+      <div className="flex items-center justify-between">
+        <p className="text-xs" style={{ color: 'var(--text-muted)' }}>
+          {results.length} de {total.toLocaleString('pt-BR')} resultados
         </p>
         <div className="flex gap-2">
           <button
-            onClick={() => setPage(p => Math.max(1, p - 1))}
+            onClick={() => setPage((p) => Math.max(1, p - 1))}
             disabled={page === 1}
-            className="btn-secondary disabled:opacity-50"
+            className="btn-secondary text-xs py-1.5 px-3"
           >
             Anterior
           </button>
+          <span
+            className="flex items-center px-3 text-xs rounded-lg"
+            style={{ background: 'var(--bg-elevated)', color: 'var(--text-secondary)', border: '1px solid var(--border)' }}
+          >
+            {page}
+          </span>
           <button
-            onClick={() => setPage(p => p + 1)}
+            onClick={() => setPage((p) => p + 1)}
             disabled={page * 50 >= total}
-            className="btn-secondary disabled:opacity-50"
+            className="btn-secondary text-xs py-1.5 px-3"
           >
             Próximo
           </button>

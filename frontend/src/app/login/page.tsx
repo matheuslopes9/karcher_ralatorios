@@ -5,12 +5,12 @@ import { useRouter } from 'next/navigation';
 import { useAuthStore } from '@/lib/auth';
 import { api } from '@/lib/api';
 import toast, { Toaster } from 'react-hot-toast';
-import { Eye, EyeOff, Shield } from 'lucide-react';
+import { Eye, EyeOff, Lock, User } from 'lucide-react';
 
 export default function LoginPage() {
   const router = useRouter();
   const login = useAuthStore((state) => state.login);
-  
+
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -21,18 +21,13 @@ export default function LoginPage() {
     setIsLoading(true);
 
     try {
-      const response = await api.post('/api/auth/login', {
-        username,
-        password,
-      });
-
+      const response = await api.post('/api/auth/login', { username, password });
       const { access_token, refresh_token, user } = response.data;
-      
       login(user, access_token, refresh_token);
       toast.success('Login realizado com sucesso!');
       router.push('/dashboard');
     } catch (error: any) {
-      const message = error.response?.data?.error || 'Falha no login';
+      const message = error.response?.data?.error || 'Usuário ou senha inválidos';
       toast.error(message);
     } finally {
       setIsLoading(false);
@@ -40,49 +35,102 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary-50 to-primary-100">
-      <Toaster position="top-right" />
-      
-      <div className="w-full max-w-md">
-        {/* Logo e título */}
-        <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-16 h-16 bg-primary-600 rounded-full mb-4">
-            <Shield className="w-8 h-8 text-white" />
+    <div
+      className="min-h-screen flex items-center justify-center relative overflow-hidden"
+      style={{ background: 'var(--bg-base)' }}
+    >
+      <Toaster
+        position="top-right"
+        toastOptions={{
+          style: {
+            background: 'var(--bg-elevated)',
+            color: 'var(--text-primary)',
+            border: '1px solid var(--border)',
+            fontSize: '14px',
+          },
+        }}
+      />
+
+      {/* Background grid pattern */}
+      <div
+        className="absolute inset-0 opacity-30"
+        style={{
+          backgroundImage:
+            'linear-gradient(var(--border) 1px, transparent 1px), linear-gradient(90deg, var(--border) 1px, transparent 1px)',
+          backgroundSize: '48px 48px',
+        }}
+      />
+
+      {/* Yellow glow */}
+      <div
+        className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 rounded-full blur-3xl pointer-events-none"
+        style={{ background: 'rgba(255, 209, 0, 0.04)' }}
+      />
+
+      <div className="relative w-full max-w-sm px-4">
+        {/* Logo */}
+        <div className="text-center mb-10">
+          <div
+            className="inline-flex items-center justify-center w-14 h-14 rounded-2xl mb-5"
+            style={{ background: 'var(--karcher-yellow)', boxShadow: '0 0 32px rgba(255,209,0,0.3)' }}
+          >
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none">
+              <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" stroke="#0A0A0F" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+            </svg>
           </div>
-          <h1 className="text-3xl font-bold text-gray-900">KÄRCHER ANALYTICS</h1>
-          <p className="text-gray-600 mt-2">Plataforma de Analytics</p>
+          <h1 className="text-2xl font-bold tracking-wide" style={{ color: 'var(--text-primary)' }}>
+            KÄRCHER ANALYTICS
+          </h1>
+          <p className="text-sm mt-1" style={{ color: 'var(--text-muted)' }}>
+            Plataforma de monitoramento
+          </p>
         </div>
 
-        {/* Formulário de login */}
-        <div className="bg-white rounded-xl shadow-lg p-8">
-          <form onSubmit={handleSubmit} className="space-y-6">
+        {/* Card */}
+        <div
+          className="rounded-2xl p-8"
+          style={{
+            background: 'var(--bg-card)',
+            border: '1px solid var(--border)',
+            boxShadow: '0 24px 64px rgba(0,0,0,0.5)',
+          }}
+        >
+          <h2 className="text-lg font-semibold mb-6" style={{ color: 'var(--text-primary)' }}>
+            Entrar na sua conta
+          </h2>
+
+          <form onSubmit={handleSubmit} className="space-y-4">
+            {/* Username */}
             <div>
-              <label htmlFor="username" className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-xs font-medium mb-1.5" style={{ color: 'var(--text-secondary)' }}>
                 Usuário
               </label>
-              <input
-                id="username"
-                type="text"
-                value={username}
-                onChange={(e) => setUsername(e.target.value)}
-                className="input-field"
-                placeholder="Digite seu usuário"
-                required
-                autoComplete="username"
-              />
+              <div className="relative">
+                <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4" style={{ color: 'var(--text-muted)' }} />
+                <input
+                  type="text"
+                  value={username}
+                  onChange={(e) => setUsername(e.target.value)}
+                  className="input-field pl-9"
+                  placeholder="Digite seu usuário"
+                  required
+                  autoComplete="username"
+                />
+              </div>
             </div>
 
+            {/* Password */}
             <div>
-              <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-xs font-medium mb-1.5" style={{ color: 'var(--text-secondary)' }}>
                 Senha
               </label>
               <div className="relative">
+                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4" style={{ color: 'var(--text-muted)' }} />
                 <input
-                  id="password"
                   type={showPassword ? 'text' : 'password'}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="input-field pr-12"
+                  className="input-field pl-9 pr-10"
                   placeholder="Digite sua senha"
                   required
                   autoComplete="current-password"
@@ -90,31 +138,40 @@ export default function LoginPage() {
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 transition-colors"
+                  style={{ color: 'var(--text-muted)' }}
                 >
-                  {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                  {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                 </button>
               </div>
             </div>
 
-            <button
-              type="submit"
-              disabled={isLoading}
-              className="w-full btn-primary py-3 disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {isLoading ? 'Entrando...' : 'ENTRAR'}
-            </button>
+            <div className="pt-2">
+              <button
+                type="submit"
+                disabled={isLoading}
+                className="btn-primary w-full py-3 text-sm font-bold tracking-wide"
+              >
+                {isLoading ? (
+                  <span className="flex items-center justify-center gap-2">
+                    <span className="spinner w-4 h-4" />
+                    Entrando...
+                  </span>
+                ) : (
+                  'ENTRAR'
+                )}
+              </button>
+            </div>
           </form>
 
-          <div className="mt-6 pt-6 border-t border-gray-200">
-            <p className="text-sm text-gray-500 text-center">
-              ⚠️ Acesso restrito - Plataforma exclusiva UC Technology
+          <div className="mt-6 pt-5" style={{ borderTop: '1px solid var(--border)' }}>
+            <p className="text-xs text-center" style={{ color: 'var(--text-muted)' }}>
+              Acesso restrito · UC Technology / Kärcher
             </p>
           </div>
         </div>
 
-        {/* Footer */}
-        <p className="text-center text-sm text-gray-600 mt-6">
+        <p className="text-center text-xs mt-6" style={{ color: 'var(--text-muted)' }}>
           © 2025 Kärcher Analytics. Todos os direitos reservados.
         </p>
       </div>
