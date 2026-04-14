@@ -7,9 +7,7 @@ import { api } from '@/lib/api';
 import {
   LayoutDashboard,
   FileText,
-  BarChart3,
   FileOutput,
-  Settings,
   Users,
   User,
   Shield,
@@ -27,9 +25,8 @@ interface ProtectedLayoutProps {
 
 const menuItems = [
   { icon: LayoutDashboard, label: 'Dashboard', href: '/dashboard' },
-  { icon: FileText, label: 'Resultados', href: '/results' },
-  { icon: BarChart3, label: 'Analytics', href: '/analytics' },
   { icon: FileOutput, label: 'Relatórios', href: '/reports' },
+  { icon: FileText, label: 'Resultados', href: '/results' },
 ];
 
 const settingsItems = [

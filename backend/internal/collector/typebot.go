@@ -158,23 +158,15 @@ func (c *Client) saveResult(ctx context.Context, r ResultItem) (bool, error) {
 		return false, fmt.Errorf("insert result: %w", err)
 	}
 
-	// Insere answers — novo formato: blockId + content (sem key/value/createdAt)
-	for _, a := range r.Answers {
-		_, err := c.db.ExecContext(ctx, `
-			INSERT INTO answers (result_id, block_id, field_key, field_value, answered_at)
-			VALUES ($1, $2, $3, $4, $5)
-		`, resultDBID, a.BlockID, a.BlockID, a.Content, createdAt)
-		if err != nil {
-			log.Printf("[collector] Error saving answer for result %s: %v", r.ID, err)
-		}
-	}
-
-	// Salva variáveis como answers também (têm nome legível)
+	// Salva variáveis como campos nomeados (nome legível ex: "nome", "codigo_servico")
 	for _, v := range r.Variables {
 		if v.Name == "" || v.Value == nil {
 			continue
 		}
 		valStr := fmt.Sprintf("%v", v.Value)
+		if valStr == "" || valStr == "<nil>" {
+			continue
+		}
 		_, err := c.db.ExecContext(ctx, `
 			INSERT INTO answers (result_id, block_id, field_key, field_value, answered_at)
 			VALUES ($1, $2, $3, $4, $5)

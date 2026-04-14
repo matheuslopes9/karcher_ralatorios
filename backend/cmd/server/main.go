@@ -155,6 +155,24 @@ func main() {
 		return c.JSON(fiber.Map{"found": false, "attempts": attempts})
 	})
 
+	// Reseta coleta: apaga todos os resultados e recoleta do zero
+	app.Get("/debug/recollect", func(c *fiber.Ctx) error {
+		_, err := pgDB.DB.ExecContext(c.Context(), `DELETE FROM answers`)
+		if err != nil {
+			return c.Status(500).JSON(fiber.Map{"error": "delete answers: " + err.Error()})
+		}
+		_, err = pgDB.DB.ExecContext(c.Context(), `DELETE FROM results`)
+		if err != nil {
+			return c.Status(500).JSON(fiber.Map{"error": "delete results: " + err.Error()})
+		}
+		go func() {
+			if err := typebotCollector.Collect(context.Background()); err != nil {
+				log.Printf("[recollect] error: %v", err)
+			}
+		}()
+		return c.JSON(fiber.Map{"status": "recollecting", "message": "Dados apagados, recoletando em background. Aguarde 30s e atualize o dashboard."})
+	})
+
 	// Rota de reset forçado do master (debug — remover após login funcionar)
 	app.Get("/debug/reset-master", func(c *fiber.Ctx) error {
 		newHash, err := auth.HashPassword(cfg.MasterPassword, 12)
