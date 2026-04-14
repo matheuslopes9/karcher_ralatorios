@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { api } from '@/lib/api';
-import { BarChart, LineChart, Funnel, TrendingUp, Calendar } from 'lucide-react';
+import { BarChart, Filter, TrendingUp, Calendar } from 'lucide-react';
 
 export default function AnalyticsPage() {
   const [summary, setSummary] = useState<any>(null);
@@ -69,7 +69,7 @@ export default function AnalyticsPage() {
         <div className="card">
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-sm font-medium text-gray-600">Abandono Médio</h3>
-            <Funnel className="w-5 h-5 text-orange-600" />
+            <Filter className="w-5 h-5 text-orange-600" />
           </div>
           <p className="text-3xl font-bold text-gray-900">
             {loading ? '...' : `${((1 - (summary?.completion_rate || 0) / 100) * 100).toFixed(1)}%`}
