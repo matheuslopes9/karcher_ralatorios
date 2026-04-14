@@ -11,7 +11,6 @@ import {
   CheckCircle,
   XCircle,
   BarChart2,
-  Download,
   ChevronLeft,
   ChevronRight,
   Calendar,
@@ -393,17 +392,6 @@ export default function ReportsPage() {
                   <p className="section-subtitle">
                     {summary.rows.length.toLocaleString('pt-BR')} registros
                   </p>
-                </div>
-                <div className="flex gap-2">
-                  <button onClick={() => handleExport('csv')} disabled={!canExport} className="btn-secondary text-xs py-1.5 px-3 flex items-center gap-1.5">
-                    <Download className="w-3 h-3" /> CSV
-                  </button>
-                  <button onClick={() => handleExport('xlsx')} disabled={!canExport} className="btn-secondary text-xs py-1.5 px-3 flex items-center gap-1.5">
-                    <Download className="w-3 h-3" /> Excel
-                  </button>
-                  <button onClick={() => handleExport('pdf')} disabled={!canExport} className="btn-primary text-xs py-1.5 px-3 flex items-center gap-1.5">
-                    <Download className="w-3 h-3" /> PDF
-                  </button>
                 </div>
               </div>
 
