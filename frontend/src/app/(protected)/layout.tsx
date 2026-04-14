@@ -26,7 +26,7 @@ interface ProtectedLayoutProps {
 const menuItems = [
   { icon: LayoutDashboard, label: 'Dashboard', href: '/dashboard' },
   { icon: FileOutput, label: 'Relatórios', href: '/reports' },
-  { icon: FileText, label: 'Resultados', href: '/results' },
+  { icon: FileText, label: 'Dados Coletados', href: '/results' },
 ];
 
 const settingsItems = [

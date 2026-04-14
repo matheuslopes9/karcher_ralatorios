@@ -15,6 +15,7 @@ import (
 	"karcher-analytics/internal/auth"
 	"karcher-analytics/internal/collector"
 	"karcher-analytics/internal/config"
+	"karcher-analytics/internal/export"
 	"karcher-analytics/internal/models"
 	"karcher-analytics/internal/results"
 	"karcher-analytics/internal/seed"
@@ -688,22 +689,59 @@ func main() {
 		return c.JSON(summary)
 	})
 
-	// Reports
-	protected.Get("/reports", func(c *fiber.Ctx) error {
-		return c.JSON(fiber.Map{
-			"data": []interface{}{},
-		})
+	// Reports summary
+	protected.Get("/reports/summary", func(c *fiber.Ctx) error {
+		from, to, err := parsePeriod(c.Query("period", "30d"), c.Query("from"), c.Query("to"))
+		if err != nil {
+			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": err.Error()})
+		}
+		summary, err := resultsRepo.GetReportSummary(c.Context(), from, to)
+		if err != nil {
+			log.Printf("reports/summary error: %v", err)
+			return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "falha ao gerar relatório"})
+		}
+		return c.JSON(summary)
 	})
 
-	// Export
-	protected.Post("/export", auth.RequireRole(
-		auth.RoleSuperAdmin,
-		auth.RoleAdmin,
-		auth.RoleAnalyst,
-	), func(c *fiber.Ctx) error {
-		return c.JSON(fiber.Map{
-			"message": "exportação em breve",
-		})
+	// Export CSV
+	protected.Get("/export/csv", func(c *fiber.Ctx) error {
+		from, to, err := parsePeriod(c.Query("period", "30d"), c.Query("from"), c.Query("to"))
+		if err != nil {
+			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": err.Error()})
+		}
+		summary, err := resultsRepo.GetReportSummary(c.Context(), from, to)
+		if err != nil {
+			return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "falha ao gerar dados"})
+		}
+		data, err := export.ToCSV(summary)
+		if err != nil {
+			return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "falha ao gerar CSV"})
+		}
+		filename := fmt.Sprintf("karcher-relatorio-%s.csv", from.Format("2006-01-02"))
+		c.Set("Content-Type", "text/csv; charset=utf-8")
+		c.Set("Content-Disposition", fmt.Sprintf(`attachment; filename="%s"`, filename))
+		return c.Send(data)
+	})
+
+	// Export XLSX
+	protected.Get("/export/xlsx", func(c *fiber.Ctx) error {
+		from, to, err := parsePeriod(c.Query("period", "30d"), c.Query("from"), c.Query("to"))
+		if err != nil {
+			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": err.Error()})
+		}
+		summary, err := resultsRepo.GetReportSummary(c.Context(), from, to)
+		if err != nil {
+			return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "falha ao gerar dados"})
+		}
+		data, err := export.ToXLSX(summary)
+		if err != nil {
+			log.Printf("xlsx export error: %v", err)
+			return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "falha ao gerar Excel"})
+		}
+		filename := fmt.Sprintf("karcher-relatorio-%s.xlsx", from.Format("2006-01-02"))
+		c.Set("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+		c.Set("Content-Disposition", fmt.Sprintf(`attachment; filename="%s"`, filename))
+		return c.Send(data)
 	})
 
 	// Audit logs (apenas SUPER_ADMIN)
@@ -734,5 +772,36 @@ func main() {
 
 	if err := app.Listen(addr); err != nil {
 		log.Fatalf("Failed to start server: %v", err)
+	}
+}
+
+// parsePeriod converte o parâmetro period (7d, 30d, 90d, custom) em from/to
+func parsePeriod(period, fromStr, toStr string) (time.Time, time.Time, error) {
+	now := time.Now()
+	today := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, now.Location())
+	tomorrow := today.Add(24 * time.Hour)
+
+	switch period {
+	case "7d":
+		return today.Add(-7 * 24 * time.Hour), tomorrow, nil
+	case "30d":
+		return today.Add(-30 * 24 * time.Hour), tomorrow, nil
+	case "90d":
+		return today.Add(-90 * 24 * time.Hour), tomorrow, nil
+	case "custom":
+		if fromStr == "" || toStr == "" {
+			return time.Time{}, time.Time{}, fmt.Errorf("from e to são obrigatórios para período custom")
+		}
+		from, err := time.Parse("2006-01-02", fromStr)
+		if err != nil {
+			return time.Time{}, time.Time{}, fmt.Errorf("from inválido: %v", err)
+		}
+		to, err := time.Parse("2006-01-02", toStr)
+		if err != nil {
+			return time.Time{}, time.Time{}, fmt.Errorf("to inválido: %v", err)
+		}
+		return from, to.Add(24 * time.Hour), nil
+	default:
+		return today.Add(-30 * 24 * time.Hour), tomorrow, nil
 	}
 }
