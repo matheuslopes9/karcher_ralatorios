@@ -15,20 +15,33 @@ export default function LoginPage() {
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [errorMsg, setErrorMsg] = useState('');
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
+    setErrorMsg('');
 
     try {
       const response = await api.post('/api/auth/login', { username, password });
       const { access_token, refresh_token, user } = response.data;
       login(user, access_token, refresh_token);
-      toast.success('Login realizado com sucesso!');
       router.push('/dashboard');
     } catch (error: any) {
-      const message = error.response?.data?.error || 'Usuário ou senha inválidos';
-      toast.error(message);
+      const status = error.response?.status;
+      const serverMsg = error.response?.data?.error;
+
+      if (status === 401) {
+        setErrorMsg('Usuário ou senha incorretos. Verifique suas credenciais.');
+      } else if (status === 403) {
+        setErrorMsg(serverMsg || 'Usuário desativado. Entre em contato com o administrador.');
+      } else if (status === 429) {
+        setErrorMsg('Muitas tentativas. Aguarde alguns minutos e tente novamente.');
+      } else if (!error.response) {
+        setErrorMsg('Não foi possível conectar ao servidor. Tente novamente em instantes.');
+      } else {
+        setErrorMsg(serverMsg || 'Erro inesperado. Tente novamente.');
+      }
     } finally {
       setIsLoading(false);
     }
@@ -110,7 +123,7 @@ export default function LoginPage() {
                 <input
                   type="text"
                   value={username}
-                  onChange={(e) => setUsername(e.target.value)}
+                  onChange={(e) => { setUsername(e.target.value); setErrorMsg(''); }}
                   className="input-field pl-9"
                   placeholder="Digite seu usuário"
                   required
@@ -129,7 +142,7 @@ export default function LoginPage() {
                 <input
                   type={showPassword ? 'text' : 'password'}
                   value={password}
-                  onChange={(e) => setPassword(e.target.value)}
+                  onChange={(e) => { setPassword(e.target.value); setErrorMsg(''); }}
                   className="input-field pl-9 pr-10"
                   placeholder="Digite sua senha"
                   required
@@ -145,6 +158,22 @@ export default function LoginPage() {
                 </button>
               </div>
             </div>
+
+            {errorMsg && (
+              <div
+                className="flex items-start gap-3 rounded-lg px-4 py-3 text-sm"
+                style={{
+                  background: 'rgba(239,68,68,0.1)',
+                  border: '1px solid rgba(239,68,68,0.3)',
+                  color: '#FCA5A5',
+                }}
+              >
+                <svg className="w-4 h-4 mt-0.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v4m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" />
+                </svg>
+                <span>{errorMsg}</span>
+              </div>
+            )}
 
             <div className="pt-2">
               <button
