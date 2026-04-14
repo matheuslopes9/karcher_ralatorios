@@ -32,29 +32,27 @@ func NewClient(db *sql.DB, apiURL, apiToken, botSlug string) *Client {
 // --- Typebot API response types ---
 
 type ListResultsResponse struct {
-	Results []ResultItem `json:"results"`
-	NextCursor string    `json:"nextCursorId"`
+	Results    []ResultItem `json:"results"`
+	NextCursor *string      `json:"nextCursor"`
 }
 
 type ResultItem struct {
-	ID          string     `json:"id"`
-	CreatedAt   string     `json:"createdAt"`
-	UpdatedAt   string     `json:"updatedAt"`
-	IsCompleted bool       `json:"isCompleted"`
-	Answers     []AnswerItem `json:"answers"`
+	ID          string         `json:"id"`
+	CreatedAt   string         `json:"createdAt"`
+	IsCompleted bool           `json:"isCompleted"`
+	HasStarted  bool           `json:"hasStarted"`
+	Answers     []AnswerItem   `json:"answers"`
 	Variables   []VariableItem `json:"variables"`
 }
 
 type AnswerItem struct {
-	BlockID   string `json:"blockId"`
-	Key       string `json:"key"`
-	Value     string `json:"value"`
-	CreatedAt string `json:"createdAt"`
+	BlockID  string `json:"blockId"`
+	Content  string `json:"content"`
 }
 
 type VariableItem struct {
-	ID    string `json:"id"`
-	Name  string `json:"name"`
+	ID    string      `json:"id"`
+	Name  string      `json:"name"`
 	Value interface{} `json:"value"`
 }
 
@@ -97,9 +95,9 @@ func (c *Client) Collect(ctx context.Context) error {
 }
 
 func (c *Client) fetchPage(ctx context.Context, cursor string) ([]ResultItem, string, error) {
-	url := fmt.Sprintf("%s/api/v1/typebots/%s/results?limit=100", c.apiURL, c.botSlug)
+	url := fmt.Sprintf("%s/api/v1/typebots/%s/results?limit=100&timeFilter=allTime", c.apiURL, c.botSlug)
 	if cursor != "" {
-		url += "&cursorId=" + cursor
+		url += "&cursor=" + cursor
 	}
 
 	req, err := http.NewRequestWithContext(ctx, "GET", url, nil)
@@ -125,7 +123,11 @@ func (c *Client) fetchPage(ctx context.Context, cursor string) ([]ResultItem, st
 		return nil, "", fmt.Errorf("failed to decode response: %w", err)
 	}
 
-	return data.Results, data.NextCursor, nil
+	var nextCursor string
+	if data.NextCursor != nil {
+		nextCursor = *data.NextCursor
+	}
+	return data.Results, nextCursor, nil
 }
 
 func (c *Client) saveResult(ctx context.Context, r ResultItem) (bool, error) {
@@ -136,19 +138,11 @@ func (c *Client) saveResult(ctx context.Context, r ResultItem) (bool, error) {
 		return false, err
 	}
 	if count > 0 {
-		return false, nil // já existe, pula
+		return false, nil
 	}
 
-	// Calcula duração
-	var durationSecs int
-	createdAt, err1 := time.Parse(time.RFC3339, r.CreatedAt)
-	updatedAt, err2 := time.Parse(time.RFC3339, r.UpdatedAt)
-	if err1 == nil && err2 == nil {
-		durationSecs = int(updatedAt.Sub(createdAt).Seconds())
-		if durationSecs < 0 {
-			durationSecs = 0
-		}
-	}
+	// Parse createdAt — duração não disponível sem updatedAt, usa 0
+	createdAt, _ := time.Parse(time.RFC3339, r.CreatedAt)
 
 	// Serializa raw data
 	rawData, _ := json.Marshal(r)
@@ -159,26 +153,34 @@ func (c *Client) saveResult(ctx context.Context, r ResultItem) (bool, error) {
 		INSERT INTO results (typebot_id, result_id, created_at_bot, is_completed, duration_secs, raw_data)
 		VALUES ($1, $2, $3, $4, $5, $6)
 		RETURNING id
-	`, c.botSlug, r.ID, createdAt, r.IsCompleted, durationSecs, string(rawData)).Scan(&resultDBID)
+	`, c.botSlug, r.ID, createdAt, r.IsCompleted, 0, string(rawData)).Scan(&resultDBID)
 	if err != nil {
 		return false, fmt.Errorf("insert result: %w", err)
 	}
 
-	// Insere answers
+	// Insere answers — novo formato: blockId + content (sem key/value/createdAt)
 	for _, a := range r.Answers {
-		var answeredAt time.Time
-		if t, err := time.Parse(time.RFC3339, a.CreatedAt); err == nil {
-			answeredAt = t
-		} else {
-			answeredAt = createdAt
-		}
-
 		_, err := c.db.ExecContext(ctx, `
 			INSERT INTO answers (result_id, block_id, field_key, field_value, answered_at)
 			VALUES ($1, $2, $3, $4, $5)
-		`, resultDBID, a.BlockID, a.Key, a.Value, answeredAt)
+		`, resultDBID, a.BlockID, a.BlockID, a.Content, createdAt)
 		if err != nil {
 			log.Printf("[collector] Error saving answer for result %s: %v", r.ID, err)
+		}
+	}
+
+	// Salva variáveis como answers também (têm nome legível)
+	for _, v := range r.Variables {
+		if v.Name == "" || v.Value == nil {
+			continue
+		}
+		valStr := fmt.Sprintf("%v", v.Value)
+		_, err := c.db.ExecContext(ctx, `
+			INSERT INTO answers (result_id, block_id, field_key, field_value, answered_at)
+			VALUES ($1, $2, $3, $4, $5)
+		`, resultDBID, v.ID, v.Name, valStr, createdAt)
+		if err != nil {
+			log.Printf("[collector] Error saving variable for result %s: %v", r.ID, err)
 		}
 	}
 
