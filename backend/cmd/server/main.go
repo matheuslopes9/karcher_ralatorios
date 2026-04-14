@@ -102,6 +102,38 @@ func main() {
 		})
 	})
 
+	// Rota de reset forçado do master (debug — remover após login funcionar)
+	app.Get("/debug/reset-master", func(c *fiber.Ctx) error {
+		newHash, err := auth.HashPassword(cfg.MasterPassword, 12)
+		if err != nil {
+			return c.Status(500).JSON(fiber.Map{"error": err.Error()})
+		}
+
+		res, err := pgDB.DB.ExecContext(c.Context(), `
+			UPDATE users SET password_hash = $1, is_active = TRUE, role = 'SUPER_ADMIN'
+			WHERE username = $2
+		`, newHash, cfg.MasterUsername)
+		if err != nil {
+			return c.Status(500).JSON(fiber.Map{"error": err.Error()})
+		}
+
+		rows, _ := res.RowsAffected()
+
+		// Se não existe, cria
+		if rows == 0 {
+			_, err = pgDB.DB.ExecContext(c.Context(), `
+				INSERT INTO users (id, name, email, username, password_hash, role, is_active, is_master)
+				VALUES (gen_random_uuid(), $1, $2, $3, $4, 'SUPER_ADMIN', TRUE, TRUE)
+			`, cfg.MasterName, cfg.MasterEmail, cfg.MasterUsername, newHash)
+			if err != nil {
+				return c.Status(500).JSON(fiber.Map{"error": "insert failed: " + err.Error()})
+			}
+			return c.JSON(fiber.Map{"status": "created", "username": cfg.MasterUsername})
+		}
+
+		return c.JSON(fiber.Map{"status": "password_reset_ok", "username": cfg.MasterUsername, "rows_affected": rows})
+	})
+
 	// Rota de health check (pública)
 	app.Get("/health", func(c *fiber.Ctx) error {
 		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
