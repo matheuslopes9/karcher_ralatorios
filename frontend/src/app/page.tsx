@@ -19,10 +19,10 @@ export default function HomePage() {
   }, [isAuthenticated, isLoading, router]);
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50">
+    <div className="min-h-screen flex items-center justify-center" style={{ background: 'var(--bg-base)' }}>
       <div className="text-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600 mx-auto"></div>
-        <p className="mt-4 text-gray-600">Carregando...</p>
+        <div className="spinner w-10 h-10 mx-auto" />
+        <p className="mt-4 text-sm" style={{ color: 'var(--text-muted)' }}>Carregando...</p>
       </div>
     </div>
   );

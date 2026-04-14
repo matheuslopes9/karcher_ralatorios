@@ -20,15 +20,19 @@ export const useAuthStore = create<AuthState>((set) => ({
       localStorage.setItem('access_token', accessToken);
       localStorage.setItem('refresh_token', refreshToken);
       localStorage.setItem('user', JSON.stringify(user));
+      // Cookie para o middleware Next.js conseguir ler server-side
+      document.cookie = `access_token=${accessToken}; path=/; max-age=900; SameSite=Lax`;
     }
     set({ user, isAuthenticated: true, isLoading: false });
   },
-  
+
   logout: () => {
     if (typeof window !== 'undefined') {
       localStorage.removeItem('access_token');
       localStorage.removeItem('refresh_token');
       localStorage.removeItem('user');
+      // Remove cookie
+      document.cookie = 'access_token=; path=/; max-age=0';
     }
     set({ user: null, isAuthenticated: false });
   },
