@@ -1,0 +1,60 @@
+# Dependencies
+node_modules/
+vendor/
+
+# Build output
+dist/
+build/
+.next/
+out/
+
+# Go binary
+backend/bin/
+backend/*.exe
+backend/*.test
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Testing
+coverage/
+.nyc_output/
+
+# Temporary files
+tmp/
+temp/
+*.tmp
+
+# Docker
+docker-compose.override.yml
+
+# Database
+*.db
+*.sqlite
+
+# Exports
+/tmp/exports/
+exports/
+
+# Misc
+*.bak
+*.cache
