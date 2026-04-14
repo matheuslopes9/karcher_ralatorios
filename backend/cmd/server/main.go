@@ -118,7 +118,6 @@ func main() {
 		slug := cfg.TypebotBotSlug
 		bases := []string{
 			cfg.TypebotAPIURL,
-			"https://bot.uctechnology.com.br",
 			"https://typebot.uctechnology.com.br",
 		}
 		httpClient := &http.Client{Timeout: 8 * time.Second}

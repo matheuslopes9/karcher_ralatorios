@@ -69,10 +69,10 @@ func Load() *Config {
 
 	return &Config{
 		// Typebot
-		TypebotAPIURL:          getEnv("TYPEBOT_API_URL", "https://typebot.uctechnology.com.br"),
+		TypebotAPIURL:          getEnv("TYPEBOT_API_URL", "https://bot.uctechnology.com.br"),
 		TypebotAdminEmail:      getEnv("TYPEBOT_ADMIN_EMAIL", ""),
 		TypebotAPIToken:        getEnv("TYPEBOT_API_TOKEN", ""),
-		TypebotBotSlug:         getEnv("TYPEBOT_BOT_SLUG", "karcher-bot"),
+		TypebotBotSlug:         getEnv("TYPEBOT_BOT_SLUG", "cmnggz3f3000zbwtdo6tmpbl8"),
 		TypebotCollectInterval: getDurationEnv("TYPEBOT_COLLECT_INTERVAL", 30*time.Second),
 		TypebotBatchLimit:      getIntEnv("TYPEBOT_BATCH_LIMIT", 100),
 		TypebotRetryMax:        getIntEnv("TYPEBOT_RETRY_MAX", 3),
