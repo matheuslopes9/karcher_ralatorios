@@ -455,6 +455,52 @@ func main() {
 		})
 	})
 
+	// PUT /api/users/:id/reset-password (ADMIN+)
+	usersGroup.Put("/:id/reset-password", func(c *fiber.Ctx) error {
+		id := c.Params("id")
+
+		user, err := userRepo.GetUserByID(c.Context(), id)
+		if err != nil {
+			return c.Status(fiber.StatusNotFound).JSON(fiber.Map{
+				"error": "usuário não encontrado",
+			})
+		}
+
+		if user.IsMaster {
+			return c.Status(fiber.StatusForbidden).JSON(fiber.Map{
+				"error": "não é possível resetar a senha do usuário master",
+			})
+		}
+
+		var req models.ResetPasswordInput
+		if err := c.BodyParser(&req); err != nil || req.NewPassword == "" {
+			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+				"error": "nova senha é obrigatória",
+			})
+		}
+
+		if err := auth.ValidatePasswordStrength(req.NewPassword); err != nil {
+			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+				"error": err.Error(),
+			})
+		}
+
+		passwordHash, err := auth.HashPassword(req.NewPassword, cfg.BCryptCost)
+		if err != nil {
+			return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+				"error": "falha ao processar senha",
+			})
+		}
+
+		if err := userRepo.ChangePassword(c.Context(), id, passwordHash); err != nil {
+			return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+				"error": "falha ao redefinir senha",
+			})
+		}
+
+		return c.JSON(fiber.Map{"message": "senha redefinida com sucesso"})
+	})
+
 	// ═══════════════════════════════════════════
 	// PLACEHOLDER ROUTES (Dashboard, Results, etc)
 	// ═══════════════════════════════════════════

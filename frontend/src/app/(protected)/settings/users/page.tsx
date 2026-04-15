@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { api } from '@/lib/api';
 import { useAuthStore } from '@/lib/auth';
-import { Plus, Edit2, Trash2, Ban, CheckCircle, Search, X, Shuffle, Eye, EyeOff } from 'lucide-react';
+import { Plus, Edit2, Trash2, Ban, CheckCircle, Search, X, Shuffle, Eye, EyeOff, KeyRound } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { User, roleLabels, roleColors } from '@/lib/types';
 
@@ -44,8 +44,16 @@ export default function UsersPage() {
 
   // Edit modal
   const [editingUser, setEditingUser] = useState<User | null>(null);
-  const [editForm, setEditForm] = useState<Partial<UserForm>>({});
+  const [editForm, setEditForm] = useState<{ name: string; email: string; role: string; is_active: boolean }>({
+    name: '', email: '', role: 'VIEWER', is_active: true,
+  });
   const [saving, setSaving] = useState(false);
+
+  // Reset password modal
+  const [resetUser, setResetUser] = useState<User | null>(null);
+  const [resetPwd, setResetPwd] = useState('');
+  const [showResetPwd, setShowResetPwd] = useState(false);
+  const [resetting, setResetting] = useState(false);
 
   // Delete confirm
   const [deletingUser, setDeletingUser] = useState<User | null>(null);
@@ -85,12 +93,10 @@ export default function UsersPage() {
     }
   };
 
-  const handleGenPassword = (target: 'create') => {
+  const handleGenPassword = (setPwd: (p: string) => void, setShow: (v: boolean) => void) => {
     const pwd = generatePassword();
-    if (target === 'create') {
-      setCreateForm(f => ({ ...f, password: pwd }));
-      setShowCreatePwd(true);
-    }
+    setPwd(pwd);
+    setShow(true);
     navigator.clipboard?.writeText(pwd).then(() => toast.success('Senha copiada!'));
   };
 
@@ -105,7 +111,12 @@ export default function UsersPage() {
     if (!editingUser) return;
     setSaving(true);
     try {
-      await api.put(`/api/users/${editingUser.id}`, editForm);
+      await api.put(`/api/users/${editingUser.id}`, {
+        name: editForm.name,
+        email: editForm.email,
+        role: editForm.role,
+        is_active: editForm.is_active,
+      });
       toast.success('Usuário atualizado!');
       setEditingUser(null);
       loadUsers();
@@ -124,6 +135,28 @@ export default function UsersPage() {
       loadUsers();
     } catch {
       toast.error('Falha ao atualizar usuário');
+    }
+  };
+
+  // ── Reset password ───────────────────────────────
+  const openReset = (user: User) => {
+    setResetUser(user);
+    setResetPwd('');
+    setShowResetPwd(false);
+  };
+
+  const handleResetPassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!resetUser || !resetPwd) return;
+    setResetting(true);
+    try {
+      await api.put(`/api/users/${resetUser.id}/reset-password`, { new_password: resetPwd });
+      toast.success('Senha redefinida com sucesso!');
+      setResetUser(null);
+    } catch (err: any) {
+      toast.error(err?.response?.data?.error || 'Falha ao redefinir senha');
+    } finally {
+      setResetting(false);
     }
   };
 
@@ -247,11 +280,20 @@ export default function UsersPage() {
                       >
                         <Edit2 className="w-3.5 h-3.5" />
                       </button>
+                      {/* Reset de senha */}
+                      <button
+                        onClick={() => openReset(user)}
+                        className="p-1.5 rounded-lg transition-colors hover:bg-amber-500/10"
+                        style={{ color: 'var(--warning)' }}
+                        title="Redefinir senha"
+                      >
+                        <KeyRound className="w-3.5 h-3.5" />
+                      </button>
                       {/* Ativar / Desativar */}
                       <button
                         onClick={() => handleToggleActive(user)}
-                        className="p-1.5 rounded-lg transition-colors"
-                        style={{ color: user.is_active ? 'var(--warning)' : 'var(--success)' }}
+                        className="p-1.5 rounded-lg transition-colors hover:bg-white/5"
+                        style={{ color: user.is_active ? 'var(--error)' : 'var(--success)' }}
                         title={user.is_active ? 'Desativar' : 'Ativar'}
                       >
                         {user.is_active ? <Ban className="w-3.5 h-3.5" /> : <CheckCircle className="w-3.5 h-3.5" />}
@@ -281,21 +323,22 @@ export default function UsersPage() {
         <Modal title="Criar Novo Usuário" onClose={() => { setShowCreate(false); setCreateForm(emptyForm); }}>
           <form onSubmit={handleCreate} className="space-y-4">
             <Field label="Nome Completo">
-              <input type="text" value={createForm.name} onChange={e => setCreateForm(f => ({ ...f, name: e.target.value }))}
+              <input type="text" value={createForm.name}
+                onChange={e => setCreateForm(f => ({ ...f, name: e.target.value }))}
                 className="input-field text-sm" placeholder="João Silva" required />
             </Field>
-
             <div className="grid grid-cols-2 gap-3">
               <Field label="Username">
-                <input type="text" value={createForm.username} onChange={e => setCreateForm(f => ({ ...f, username: e.target.value }))}
+                <input type="text" value={createForm.username}
+                  onChange={e => setCreateForm(f => ({ ...f, username: e.target.value }))}
                   className="input-field text-sm" placeholder="joao.silva" required />
               </Field>
               <Field label="E-mail">
-                <input type="email" value={createForm.email} onChange={e => setCreateForm(f => ({ ...f, email: e.target.value }))}
+                <input type="email" value={createForm.email}
+                  onChange={e => setCreateForm(f => ({ ...f, email: e.target.value }))}
                   className="input-field text-sm" placeholder="joao@empresa.com" required />
               </Field>
             </div>
-
             <Field label="Senha">
               <div className="flex gap-2">
                 <div className="relative flex-1">
@@ -303,28 +346,26 @@ export default function UsersPage() {
                     type={showCreatePwd ? 'text' : 'password'}
                     value={createForm.password}
                     onChange={e => setCreateForm(f => ({ ...f, password: e.target.value }))}
-                    className="input-field text-sm pr-9 w-full"
-                    placeholder="Senha forte..."
-                    required
+                    className="input-field text-sm pr-9 w-full" placeholder="Senha forte..." required
                   />
                   <button type="button" onClick={() => setShowCreatePwd(v => !v)}
                     className="absolute right-2.5 top-1/2 -translate-y-1/2" style={{ color: 'var(--text-muted)' }}>
                     {showCreatePwd ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
                   </button>
                 </div>
-                <button type="button" onClick={() => handleGenPassword('create')}
-                  className="btn-secondary text-xs px-3 flex items-center gap-1.5 flex-shrink-0" title="Gerar senha">
+                <button type="button"
+                  onClick={() => handleGenPassword(p => setCreateForm(f => ({ ...f, password: p })), setShowCreatePwd)}
+                  className="btn-secondary text-xs px-3 flex items-center gap-1.5 flex-shrink-0">
                   <Shuffle className="w-3.5 h-3.5" style={{ color: 'var(--uc-accent)' }} />
                   Gerar
                 </button>
               </div>
             </Field>
-
             <RoleSelector value={createForm.role} onChange={v => setCreateForm(f => ({ ...f, role: v }))} />
             <ToggleActive value={createForm.is_active} onChange={v => setCreateForm(f => ({ ...f, is_active: v }))} />
-
             <div className="flex justify-end gap-2 pt-2">
-              <button type="button" onClick={() => { setShowCreate(false); setCreateForm(emptyForm); }} className="btn-secondary text-sm py-2 px-4">Cancelar</button>
+              <button type="button" onClick={() => { setShowCreate(false); setCreateForm(emptyForm); }}
+                className="btn-secondary text-sm py-2 px-4">Cancelar</button>
               <button type="submit" disabled={creating} className="btn-primary text-sm py-2 px-4">
                 {creating ? <div className="spinner w-3.5 h-3.5" /> : <Plus className="w-3.5 h-3.5" />}
                 Criar Usuário
@@ -339,23 +380,70 @@ export default function UsersPage() {
         <Modal title={`Editar: ${editingUser.name}`} onClose={() => setEditingUser(null)}>
           <form onSubmit={handleSaveEdit} className="space-y-4">
             <Field label="Nome Completo">
-              <input type="text" value={editForm.name || ''} onChange={e => setEditForm(f => ({ ...f, name: e.target.value }))}
-                className="input-field text-sm" placeholder="Nome completo" required />
+              <input type="text" value={editForm.name}
+                onChange={e => setEditForm(f => ({ ...f, name: e.target.value }))}
+                className="input-field text-sm" required />
             </Field>
-
             <Field label="E-mail">
-              <input type="email" value={editForm.email || ''} onChange={e => setEditForm(f => ({ ...f, email: e.target.value }))}
-                className="input-field text-sm" placeholder="email@empresa.com" required />
+              <input type="email" value={editForm.email}
+                onChange={e => setEditForm(f => ({ ...f, email: e.target.value }))}
+                className="input-field text-sm" required />
             </Field>
-
-            <RoleSelector value={editForm.role || 'VIEWER'} onChange={v => setEditForm(f => ({ ...f, role: v }))} />
-            <ToggleActive value={editForm.is_active ?? true} onChange={v => setEditForm(f => ({ ...f, is_active: v }))} />
-
+            <RoleSelector value={editForm.role} onChange={v => setEditForm(f => ({ ...f, role: v }))} />
+            <ToggleActive value={editForm.is_active} onChange={v => setEditForm(f => ({ ...f, is_active: v }))} />
             <div className="flex justify-end gap-2 pt-2">
-              <button type="button" onClick={() => setEditingUser(null)} className="btn-secondary text-sm py-2 px-4">Cancelar</button>
+              <button type="button" onClick={() => setEditingUser(null)}
+                className="btn-secondary text-sm py-2 px-4">Cancelar</button>
               <button type="submit" disabled={saving} className="btn-primary text-sm py-2 px-4">
                 {saving ? <div className="spinner w-3.5 h-3.5" /> : <Edit2 className="w-3.5 h-3.5" />}
                 Salvar
+              </button>
+            </div>
+          </form>
+        </Modal>
+      )}
+
+      {/* ── Modal: Redefinir Senha ────────────────── */}
+      {resetUser && (
+        <Modal title={`Redefinir senha: ${resetUser.name}`} onClose={() => setResetUser(null)}>
+          <form onSubmit={handleResetPassword} className="space-y-4">
+            <div
+              className="flex items-center gap-3 rounded-lg px-4 py-3 text-sm"
+              style={{ background: 'rgba(251,191,36,0.07)', border: '1px solid rgba(251,191,36,0.2)', color: '#FDE68A' }}
+            >
+              <KeyRound className="w-4 h-4 flex-shrink-0" />
+              <span>A senha atual do usuário será substituída pela nova senha definida abaixo.</span>
+            </div>
+            <Field label="Nova Senha">
+              <div className="flex gap-2">
+                <div className="relative flex-1">
+                  <input
+                    type={showResetPwd ? 'text' : 'password'}
+                    value={resetPwd}
+                    onChange={e => setResetPwd(e.target.value)}
+                    className="input-field text-sm pr-9 w-full"
+                    placeholder="Nova senha forte..."
+                    required
+                  />
+                  <button type="button" onClick={() => setShowResetPwd(v => !v)}
+                    className="absolute right-2.5 top-1/2 -translate-y-1/2" style={{ color: 'var(--text-muted)' }}>
+                    {showResetPwd ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+                  </button>
+                </div>
+                <button type="button"
+                  onClick={() => handleGenPassword(setResetPwd, setShowResetPwd)}
+                  className="btn-secondary text-xs px-3 flex items-center gap-1.5 flex-shrink-0">
+                  <Shuffle className="w-3.5 h-3.5" style={{ color: 'var(--uc-accent)' }} />
+                  Gerar
+                </button>
+              </div>
+            </Field>
+            <div className="flex justify-end gap-2 pt-2">
+              <button type="button" onClick={() => setResetUser(null)}
+                className="btn-secondary text-sm py-2 px-4">Cancelar</button>
+              <button type="submit" disabled={resetting} className="btn-primary text-sm py-2 px-4">
+                {resetting ? <div className="spinner w-3.5 h-3.5" /> : <KeyRound className="w-3.5 h-3.5" />}
+                Redefinir Senha
               </button>
             </div>
           </form>
@@ -373,7 +461,7 @@ export default function UsersPage() {
             </p>
             <div
               className="flex items-center gap-3 rounded-lg px-4 py-3 text-sm"
-              style={{ background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.2)', color: '#FCA5A5' }}
+              style={{ background: 'rgba(248,113,113,0.08)', border: '1px solid rgba(248,113,113,0.2)', color: '#FCA5A5' }}
             >
               <Trash2 className="w-4 h-4 flex-shrink-0" />
               <span>O usuário e todos seus dados de acesso serão removidos.</span>
@@ -427,7 +515,7 @@ function RoleSelector({ value, onChange }: { value: string; onChange: (v: string
       <div className="grid grid-cols-2 gap-2">
         {ROLE_OPTIONS.map(opt => (
           <label key={opt.value} className="flex flex-col gap-0.5 rounded-xl p-3 cursor-pointer transition-all" style={{
-            background: value === opt.value ? 'rgba(59,130,246,0.10)' : 'var(--bg-elevated)',
+            background: value === opt.value ? 'rgba(79,156,249,0.10)' : 'var(--bg-elevated)',
             border: `1px solid ${value === opt.value ? 'var(--uc-accent)' : 'var(--border)'}`,
           }}>
             <input type="radio" name="role" value={opt.value} checked={value === opt.value}

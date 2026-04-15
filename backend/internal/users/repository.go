@@ -167,21 +167,19 @@ func (r *Repository) ListUsers(ctx context.Context, page, limit int, search stri
 
 func (r *Repository) UpdateUser(ctx context.Context, id string, input models.UpdateUserInput) (*models.User, error) {
 	query := `
-		UPDATE users 
-		SET name = COALESCE(NULLIF($1, ''), name),
-			email = COALESCE(NULLIF($2, ''), email),
-			role = COALESCE(NULLIF($3, ''), role),
-			is_active = $4,
-			avatar_url = COALESCE($5, avatar_url),
+		UPDATE users
+		SET name      = COALESCE(NULLIF($1, ''), name),
+			email     = COALESCE(NULLIF($2, ''), email),
+			role      = COALESCE(NULLIF($3, ''), role),
+			is_active = CASE WHEN $4::boolean IS NOT NULL THEN $4::boolean ELSE is_active END,
 			updated_at = NOW()
-		WHERE id = $6
+		WHERE id = $5
 		RETURNING id, name, email, username, role, is_active, is_master, created_at, updated_at
 	`
 
 	user := &models.User{}
 	err := r.db.QueryRowContext(ctx, query,
-		input.Name, input.Email, string(input.Role), input.IsActive,
-		input.AvatarURL, id,
+		input.Name, input.Email, string(input.Role), input.IsActive, id,
 	).Scan(&user.ID, &user.Name, &user.Email, &user.Username, &user.Role,
 		&user.IsActive, &user.IsMaster, &user.CreatedAt, &user.UpdatedAt)
 

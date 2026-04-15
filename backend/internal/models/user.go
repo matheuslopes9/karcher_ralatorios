@@ -39,8 +39,12 @@ type UpdateUserInput struct {
 	Name      string    `json:"name"`
 	Email     string    `json:"email"`
 	Role      UserRole  `json:"role"`
-	IsActive  bool      `json:"is_active"`
+	IsActive  *bool     `json:"is_active"`
 	AvatarURL string    `json:"avatar_url"`
+}
+
+type ResetPasswordInput struct {
+	NewPassword string `json:"new_password"`
 }
 
 type ChangePasswordInput struct {
