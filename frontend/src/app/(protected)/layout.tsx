@@ -107,7 +107,7 @@ export default function ProtectedLayout({ children }: ProtectedLayoutProps) {
         {/* Logo */}
         <div className="flex items-center justify-center px-5 py-4" style={{ borderBottom: '1px solid var(--border)' }}>
           <Image
-            src="/logo.png"
+            src="/favicon.png"
             alt="Kärcher"
             width={130}
             height={52}

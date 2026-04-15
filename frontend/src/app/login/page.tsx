@@ -86,7 +86,7 @@ export default function LoginPage() {
         <div className="text-center mb-10">
           <div className="inline-flex items-center justify-center mb-5">
             <Image
-              src="/logo.png"
+              src="/favicon.png"
               alt="Kärcher"
               width={180}
               height={72}
