@@ -166,28 +166,59 @@ func (r *Repository) ListUsers(ctx context.Context, page, limit int, search stri
 }
 
 func (r *Repository) UpdateUser(ctx context.Context, id string, input models.UpdateUserInput) (*models.User, error) {
-	query := `
-		UPDATE users
-		SET name      = COALESCE(NULLIF($1, ''), name),
-			email     = COALESCE(NULLIF($2, ''), email),
-			role      = COALESCE(NULLIF($3, ''), role),
-			is_active = CASE WHEN $4::boolean IS NOT NULL THEN $4::boolean ELSE is_active END,
-			updated_at = NOW()
-		WHERE id = $5
-		RETURNING id, name, email, username, role, is_active, is_master, created_at, updated_at
-	`
+	setClauses := []string{"updated_at = NOW()"}
+	args := []interface{}{}
+	argIdx := 1
+
+	if input.Name != "" {
+		setClauses = append(setClauses, fmt.Sprintf("name = $%d", argIdx))
+		args = append(args, input.Name)
+		argIdx++
+	}
+	if input.Email != "" {
+		setClauses = append(setClauses, fmt.Sprintf("email = $%d", argIdx))
+		args = append(args, input.Email)
+		argIdx++
+	}
+	if input.Role != "" {
+		setClauses = append(setClauses, fmt.Sprintf("role = $%d", argIdx))
+		args = append(args, string(input.Role))
+		argIdx++
+	}
+	if input.IsActive != nil {
+		setClauses = append(setClauses, fmt.Sprintf("is_active = $%d", argIdx))
+		args = append(args, *input.IsActive)
+		argIdx++
+	}
+
+	args = append(args, id)
+	query := fmt.Sprintf(`
+		UPDATE users SET %s
+		WHERE id = $%d
+		RETURNING id, name, email, username, role, is_active, is_master, created_at, updated_at`,
+		joinClauses(setClauses), argIdx,
+	)
 
 	user := &models.User{}
-	err := r.db.QueryRowContext(ctx, query,
-		input.Name, input.Email, string(input.Role), input.IsActive, id,
-	).Scan(&user.ID, &user.Name, &user.Email, &user.Username, &user.Role,
-		&user.IsActive, &user.IsMaster, &user.CreatedAt, &user.UpdatedAt)
-
+	err := r.db.QueryRowContext(ctx, query, args...).Scan(
+		&user.ID, &user.Name, &user.Email, &user.Username, &user.Role,
+		&user.IsActive, &user.IsMaster, &user.CreatedAt, &user.UpdatedAt,
+	)
 	if err == sql.ErrNoRows {
 		return nil, fmt.Errorf("user not found")
 	}
-
 	return user, err
+}
+
+func joinClauses(clauses []string) string {
+	result := ""
+	for i, c := range clauses {
+		if i > 0 {
+			result += ", "
+		}
+		result += c
+	}
+	return result
 }
 
 func (r *Repository) ChangePassword(ctx context.Context, id, passwordHash string) error {
