@@ -3,13 +3,8 @@ FROM golang:alpine AS builder
 
 WORKDIR /app
 
-RUN apk add --no-cache git
-
-COPY go.mod go.sum ./
-RUN go mod download
-
 COPY . .
-RUN CGO_ENABLED=0 GOOS=linux go build -o /karcher-analytics ./cmd/server
+RUN CGO_ENABLED=0 GOOS=linux go build -mod=vendor -o /karcher-analytics ./cmd/server
 
 # Final stage
 FROM alpine:latest

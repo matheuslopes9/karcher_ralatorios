@@ -1,6 +1,6 @@
 # Dependencies
 node_modules/
-vendor/
+# vendor/ — kept in repo for offline Docker builds on EasyPanel
 
 # Build output
 dist/
