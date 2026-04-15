@@ -165,7 +165,7 @@ export default function ProtectedLayout({ children }: ProtectedLayoutProps) {
           <div className="flex items-center gap-3 px-3 py-2 rounded-lg mb-2" style={{ background: 'var(--bg-elevated)' }}>
             <div
               className="w-8 h-8 rounded-lg flex items-center justify-center text-xs font-bold flex-shrink-0"
-              style={{ background: 'var(--karcher-yellow)', color: '#0A0A0F' }}
+              style={{ background: 'var(--uc-accent)', color: '#ffffff' }}
             >
               {user?.name?.charAt(0).toUpperCase()}
             </div>
@@ -192,7 +192,7 @@ export default function ProtectedLayout({ children }: ProtectedLayoutProps) {
           style={{
             paddingTop: '2.25rem',
             paddingBottom: '1rem',
-            background: 'rgba(10,10,15,0.85)',
+            background: 'rgba(10,25,41,0.90)',
             backdropFilter: 'blur(12px)',
             borderBottom: '1px solid var(--border)',
           }}

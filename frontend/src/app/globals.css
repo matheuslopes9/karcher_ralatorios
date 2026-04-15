@@ -4,36 +4,40 @@
 
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
 
-/* ─── Design System: Kärcher Analytics ─── */
-/* Style: Dark Industrial + Bento Grid     */
-/* Palette: Kärcher Yellow #FFD100 + Slate */
+/* ─── Design System: UC Technology Analytics ─── */
+/* Style: Dark Navy + Professional              */
+/* Palette: UC Blue #1a365d + Steel Navy        */
 
 :root {
-  --karcher-yellow: #FFD100;
-  --karcher-yellow-dark: #E6BC00;
-  --karcher-yellow-light: #FFF3A3;
+  --karcher-yellow: #3B82F6;
+  --karcher-yellow-dark: #2563EB;
+  --karcher-yellow-light: #BFDBFE;
 
-  --bg-base: #0A0A0F;
-  --bg-surface: #111118;
-  --bg-elevated: #1A1A24;
-  --bg-card: #16161E;
-  --bg-card-hover: #1E1E2A;
+  --uc-accent: #3B82F6;
+  --uc-accent-dark: #2563EB;
+  --uc-accent-glow: rgba(59, 130, 246, 0.15);
 
-  --border: #2A2A38;
-  --border-light: #333344;
+  --bg-base: #0a1929;
+  --bg-surface: #0f2135;
+  --bg-elevated: #122a42;
+  --bg-card: #0f2135;
+  --bg-card-hover: #163250;
 
-  --text-primary: #F0F0F5;
-  --text-secondary: #8888AA;
-  --text-muted: #55556A;
+  --border: #1e3a5f;
+  --border-light: #254d7a;
+
+  --text-primary: #E8F0FE;
+  --text-secondary: #7BA7D4;
+  --text-muted: #4A7AA0;
 
   --success: #22C55E;
   --success-bg: #052E16;
   --warning: #F59E0B;
-  --warning-bg: #1C1008;
+  --warning-bg: #1a1505;
   --error: #EF4444;
-  --error-bg: #1C0808;
+  --error-bg: #1a0505;
   --info: #3B82F6;
-  --info-bg: #0C1A3A;
+  --info-bg: #0a1929;
 }
 
 * {
@@ -64,14 +68,14 @@ body {
   /* Buttons */
   .btn-primary {
     @apply inline-flex items-center justify-center gap-2 font-semibold rounded-lg transition-all duration-200 cursor-pointer;
-    background: var(--karcher-yellow);
-    color: #0A0A0F;
+    background: var(--uc-accent);
+    color: #ffffff;
     padding: 0.5rem 1.25rem;
   }
   .btn-primary:hover {
-    background: var(--karcher-yellow-dark);
+    background: var(--uc-accent-dark);
     transform: translateY(-1px);
-    box-shadow: 0 4px 20px rgba(255, 209, 0, 0.3);
+    box-shadow: 0 4px 20px rgba(59, 130, 246, 0.35);
   }
   .btn-primary:active { transform: translateY(0); }
   .btn-primary:disabled {
@@ -116,8 +120,8 @@ body {
   }
   .input-field::placeholder { color: var(--text-muted); }
   .input-field:focus {
-    border-color: var(--karcher-yellow);
-    box-shadow: 0 0 0 3px rgba(255, 209, 0, 0.1);
+    border-color: var(--uc-accent);
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);
   }
 
   /* Cards */
@@ -132,7 +136,7 @@ body {
 
   .card-glow {
     @apply card;
-    box-shadow: 0 0 0 1px rgba(255, 209, 0, 0.1), 0 4px 24px rgba(0,0,0,0.4);
+    box-shadow: 0 0 0 1px rgba(59, 130, 246, 0.15), 0 4px 24px rgba(0,0,0,0.4);
   }
 
   /* Badges / Status */
@@ -173,7 +177,7 @@ body {
   }
   .metric-card .metric-icon {
     @apply w-11 h-11 rounded-xl flex items-center justify-center;
-    background: rgba(255, 209, 0, 0.1);
+    background: rgba(59, 130, 246, 0.12);
   }
   .metric-card .metric-value {
     @apply text-3xl font-bold tracking-tight;
@@ -218,9 +222,9 @@ body {
     color: var(--text-primary);
   }
   .nav-link.active {
-    background: rgba(255, 209, 0, 0.1);
-    color: var(--karcher-yellow);
-    border-left: 2px solid var(--karcher-yellow);
+    background: rgba(59, 130, 246, 0.12);
+    color: var(--uc-accent);
+    border-left: 2px solid var(--uc-accent);
     padding-left: calc(1rem - 2px);
   }
 
@@ -231,14 +235,14 @@ body {
   }
   .progress-bar-fill {
     @apply h-full rounded-full transition-all duration-500;
-    background: var(--karcher-yellow);
+    background: var(--uc-accent);
   }
 
   /* Loading spinner */
   .spinner {
     @apply animate-spin rounded-full border-2;
     border-color: var(--border);
-    border-top-color: var(--karcher-yellow);
+    border-top-color: var(--uc-accent);
   }
 
   /* Section header */
@@ -251,9 +255,9 @@ body {
     color: var(--text-muted);
   }
 
-  /* Yellow accent text */
-  .text-accent { color: var(--karcher-yellow); }
-  .bg-accent { background: var(--karcher-yellow); }
+  /* Blue accent text */
+  .text-accent { color: var(--uc-accent); }
+  .bg-accent { background: var(--uc-accent); }
 
   /* Divider */
   .divider { border-color: var(--border); }

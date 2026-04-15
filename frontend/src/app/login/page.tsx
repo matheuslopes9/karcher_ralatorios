@@ -1,15 +1,13 @@
 'use client';
 
 import { useState } from 'react';
-import { useRouter } from 'next/navigation';
 import { useAuthStore } from '@/lib/auth';
 import { api } from '@/lib/api';
-import toast, { Toaster } from 'react-hot-toast';
+import { Toaster } from 'react-hot-toast';
 import { Eye, EyeOff, Lock, User } from 'lucide-react';
 import Image from 'next/image';
 
 export default function LoginPage() {
-  const router = useRouter();
   const login = useAuthStore((state) => state.login);
 
   const [username, setUsername] = useState('');
@@ -78,7 +76,7 @@ export default function LoginPage() {
       {/* Yellow glow */}
       <div
         className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 rounded-full blur-3xl pointer-events-none"
-        style={{ background: 'rgba(255, 209, 0, 0.04)' }}
+        style={{ background: 'rgba(59, 130, 246, 0.06)' }}
       />
 
       <div className="relative w-full max-w-sm px-4">
