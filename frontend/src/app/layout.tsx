@@ -5,7 +5,7 @@ import { Inter } from 'next/font/google';
 const inter = Inter({ subsets: ['latin'] });
 
 export const metadata: Metadata = {
-  title: 'Kärcher Analytics',
+  title: 'UCTechnology Analytics',
   description: 'Plataforma de Analytics para monitoramento de bots Typebot',
   icons: {
     icon: '/favicon.png',

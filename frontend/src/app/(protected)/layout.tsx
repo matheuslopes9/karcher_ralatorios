@@ -72,7 +72,12 @@ export default function ProtectedLayout({ children }: ProtectedLayoutProps) {
     'Dashboard';
 
   return (
-    <div className="min-h-screen flex" style={{ background: 'var(--bg-base)' }}>
+    <div
+      className="min-h-screen flex"
+      style={{
+        background: 'linear-gradient(160deg, #060f1a 0%, #060f1a 50%, #081525 100%)',
+      }}
+    >
       <Toaster
         position="top-right"
         toastOptions={{
@@ -100,20 +105,39 @@ export default function ProtectedLayout({ children }: ProtectedLayoutProps) {
           sidebarOpen ? 'translate-x-0' : '-translate-x-full'
         } lg:translate-x-0`}
         style={{
-          background: 'var(--bg-surface)',
+          background: 'linear-gradient(180deg, #0b1c2e 0%, #091625 100%)',
           borderRight: '1px solid var(--border)',
         }}
       >
         {/* Logo */}
-        <div className="flex items-center justify-center px-5 py-4" style={{ borderBottom: '1px solid var(--border)' }}>
-          <Image
-            src="/favicon.png"
-            alt="Kärcher"
-            width={130}
-            height={52}
-            priority
-            style={{ objectFit: 'contain' }}
-          />
+        <div
+          className="flex flex-col items-center justify-center px-5 py-5 gap-2"
+          style={{ borderBottom: '1px solid var(--border)' }}
+        >
+          <div
+            className="flex items-center justify-center rounded-xl p-2"
+            style={{
+              background: 'rgba(79,156,249,0.08)',
+              border: '1px solid rgba(79,156,249,0.15)',
+            }}
+          >
+            <Image
+              src="/favicon.png"
+              alt="UCTechnology Analytics"
+              width={48}
+              height={48}
+              priority
+              style={{ objectFit: 'contain' }}
+            />
+          </div>
+          <div className="text-center">
+            <p className="text-xs font-bold tracking-wide" style={{ color: 'var(--text-primary)' }}>
+              UCTechnology
+            </p>
+            <p className="text-[10px] font-medium" style={{ color: 'var(--text-muted)' }}>
+              Analytics
+            </p>
+          </div>
         </div>
 
         {/* Nav */}
@@ -192,8 +216,8 @@ export default function ProtectedLayout({ children }: ProtectedLayoutProps) {
           style={{
             paddingTop: '2.25rem',
             paddingBottom: '1rem',
-            background: 'rgba(10,25,41,0.90)',
-            backdropFilter: 'blur(12px)',
+            background: 'linear-gradient(180deg, rgba(6,15,26,0.97) 0%, rgba(8,18,32,0.94) 100%)',
+            backdropFilter: 'blur(16px)',
             borderBottom: '1px solid var(--border)',
           }}
         >

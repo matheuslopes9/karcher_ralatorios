@@ -3,7 +3,6 @@
 import { useState } from 'react';
 import { useAuthStore } from '@/lib/auth';
 import { api } from '@/lib/api';
-import { Toaster } from 'react-hot-toast';
 import { Eye, EyeOff, Lock, User } from 'lucide-react';
 import Image from 'next/image';
 
@@ -49,50 +48,72 @@ export default function LoginPage() {
   return (
     <div
       className="min-h-screen flex items-center justify-center relative overflow-hidden"
-      style={{ background: 'var(--bg-base)' }}
+      style={{
+        background: 'linear-gradient(135deg, #020c16 0%, #060f1a 40%, #091827 70%, #0b2035 100%)',
+      }}
     >
-      <Toaster
-        position="top-right"
-        toastOptions={{
-          style: {
-            background: 'var(--bg-elevated)',
-            color: 'var(--text-primary)',
-            border: '1px solid var(--border)',
-            fontSize: '14px',
-          },
+      {/* Radial glow center */}
+      <div
+        className="absolute inset-0 pointer-events-none"
+        style={{
+          background:
+            'radial-gradient(ellipse 80% 60% at 50% 40%, rgba(79,156,249,0.09) 0%, transparent 70%)',
         }}
       />
 
-      {/* Background grid pattern */}
+      {/* Subtle top-left orb */}
       <div
-        className="absolute inset-0 opacity-30"
+        className="absolute -top-32 -left-32 w-96 h-96 rounded-full pointer-events-none"
+        style={{
+          background: 'radial-gradient(circle, rgba(79,156,249,0.08) 0%, transparent 70%)',
+          filter: 'blur(40px)',
+        }}
+      />
+
+      {/* Subtle bottom-right orb */}
+      <div
+        className="absolute -bottom-32 -right-32 w-96 h-96 rounded-full pointer-events-none"
+        style={{
+          background: 'radial-gradient(circle, rgba(26,53,93,0.6) 0%, transparent 70%)',
+          filter: 'blur(40px)',
+        }}
+      />
+
+      {/* Grid pattern */}
+      <div
+        className="absolute inset-0 opacity-[0.04] pointer-events-none"
         style={{
           backgroundImage:
-            'linear-gradient(var(--border) 1px, transparent 1px), linear-gradient(90deg, var(--border) 1px, transparent 1px)',
-          backgroundSize: '48px 48px',
+            'linear-gradient(rgba(79,156,249,1) 1px, transparent 1px), linear-gradient(90deg, rgba(79,156,249,1) 1px, transparent 1px)',
+          backgroundSize: '56px 56px',
         }}
       />
 
-      {/* Yellow glow */}
-      <div
-        className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 rounded-full blur-3xl pointer-events-none"
-        style={{ background: 'rgba(59, 130, 246, 0.06)' }}
-      />
+      <div className="relative w-full max-w-sm px-4 z-10">
 
-      <div className="relative w-full max-w-sm px-4">
-        {/* Logo */}
-        <div className="text-center mb-10">
-          <div className="inline-flex items-center justify-center mb-5">
+        {/* Logo + título */}
+        <div className="text-center mb-8">
+          <div
+            className="inline-flex items-center justify-center mb-5 rounded-2xl p-4"
+            style={{
+              background: 'rgba(79,156,249,0.07)',
+              border: '1px solid rgba(79,156,249,0.15)',
+              boxShadow: '0 0 40px rgba(79,156,249,0.08)',
+            }}
+          >
             <Image
               src="/favicon.png"
-              alt="Kärcher"
-              width={180}
-              height={72}
+              alt="UCTechnology Analytics"
+              width={120}
+              height={120}
               priority
               style={{ objectFit: 'contain' }}
             />
           </div>
-          <p className="text-sm mt-1" style={{ color: 'var(--text-muted)' }}>
+          <h1 className="text-xl font-bold tracking-tight mb-1" style={{ color: 'var(--text-primary)' }}>
+            UCTechnology Analytics
+          </h1>
+          <p className="text-sm" style={{ color: 'var(--text-muted)' }}>
             Plataforma de monitoramento WhatsApp
           </p>
         </div>
@@ -101,12 +122,12 @@ export default function LoginPage() {
         <div
           className="rounded-2xl p-8"
           style={{
-            background: 'var(--bg-card)',
+            background: 'linear-gradient(160deg, rgba(14,30,48,0.95) 0%, rgba(11,28,46,0.98) 100%)',
             border: '1px solid var(--border)',
-            boxShadow: '0 24px 64px rgba(0,0,0,0.5)',
+            boxShadow: '0 32px 80px rgba(0,0,0,0.6), 0 0 0 1px rgba(79,156,249,0.06)',
           }}
         >
-          <h2 className="text-lg font-semibold mb-6" style={{ color: 'var(--text-primary)' }}>
+          <h2 className="text-base font-semibold mb-6" style={{ color: 'var(--text-primary)' }}>
             Entrar na sua conta
           </h2>
 
@@ -161,8 +182,8 @@ export default function LoginPage() {
               <div
                 className="flex items-start gap-3 rounded-lg px-4 py-3 text-sm"
                 style={{
-                  background: 'rgba(239,68,68,0.1)',
-                  border: '1px solid rgba(239,68,68,0.3)',
+                  background: 'rgba(248,113,113,0.08)',
+                  border: '1px solid rgba(248,113,113,0.25)',
                   color: '#FCA5A5',
                 }}
               >
@@ -193,7 +214,7 @@ export default function LoginPage() {
 
           <div className="mt-6 pt-5" style={{ borderTop: '1px solid var(--border)' }}>
             <p className="text-xs text-center" style={{ color: 'var(--text-muted)' }}>
-              Acesso restrito · UC Technology / Kärcher
+              Acesso restrito · UCTechnology Analytics / Kärcher
             </p>
           </div>
         </div>

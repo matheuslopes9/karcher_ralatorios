@@ -9,35 +9,38 @@
 /* Palette: UC Blue #1a365d + Steel Navy        */
 
 :root {
-  --karcher-yellow: #3B82F6;
+  --karcher-yellow: #4F9CF9;
   --karcher-yellow-dark: #2563EB;
   --karcher-yellow-light: #BFDBFE;
 
-  --uc-accent: #3B82F6;
+  --uc-accent: #4F9CF9;
   --uc-accent-dark: #2563EB;
-  --uc-accent-glow: rgba(59, 130, 246, 0.15);
+  --uc-accent-glow: rgba(79, 156, 249, 0.18);
 
-  --bg-base: #0a1929;
-  --bg-surface: #0f2135;
-  --bg-elevated: #122a42;
-  --bg-card: #0f2135;
-  --bg-card-hover: #163250;
+  /* Fundo principal com gradiente sutil azul-marinho */
+  --bg-base: #060f1a;
+  --bg-surface: #0b1c2e;
+  --bg-elevated: #102035;
+  --bg-card: #0e1e30;
+  --bg-card-hover: #152840;
 
-  --border: #1e3a5f;
-  --border-light: #254d7a;
+  /* Borders com mais contraste */
+  --border: #1a3550;
+  --border-light: #234669;
 
-  --text-primary: #E8F0FE;
-  --text-secondary: #7BA7D4;
-  --text-muted: #4A7AA0;
+  /* Texto mais legível */
+  --text-primary: #EAF0FB;
+  --text-secondary: #7FAFD6;
+  --text-muted: #3D6B90;
 
-  --success: #22C55E;
-  --success-bg: #052E16;
-  --warning: #F59E0B;
-  --warning-bg: #1a1505;
-  --error: #EF4444;
-  --error-bg: #1a0505;
-  --info: #3B82F6;
-  --info-bg: #0a1929;
+  --success: #34D399;
+  --success-bg: #022c1e;
+  --warning: #FBBF24;
+  --warning-bg: #1c1200;
+  --error: #F87171;
+  --error-bg: #1c0505;
+  --info: #4F9CF9;
+  --info-bg: #091827;
 }
 
 * {
